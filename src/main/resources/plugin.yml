@@ -1,0 +1,4 @@
+name: mechanism
+version: '1.0-SNAPSHOT'
+main: org.example.artyom.mechanism.Mechanism
+api-version: '1.21'

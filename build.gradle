@@ -1,0 +1,82 @@
+plugins {
+    id 'java'
+    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id 'io.github.goooler.shadow' version '8.1.8'
+}
+
+group = 'org.example.artyom'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "spigotmc-repo"
+        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
+    }
+    maven { url = "https://maven.devs.beer/" }
+}
+
+dependencies {
+    compileOnly("org.spigotmc:spigot-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly "dev.lone:api-itemsadder:4.0.10"
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.4.1")
+    implementation 'com.zaxxer:HikariCP:5.1.0'  // HikariCP
+    implementation 'com.jeff-media:custom-block-data:2.2.2' //Custom block data
+}
+
+tasks {
+    runServer {
+        // Configure the Minecraft version for our task.
+        // This is the only required configuration besides applying the plugin.
+        // Your plugin's jar (or shadowJar if present) will be used automatically.
+        minecraftVersion("1.21")
+    }
+}
+
+
+
+
+tasks.register('printJarPath') {
+    dependsOn('jar')
+    doLast {
+        def jarTask = tasks.getByName('jar')  // eager, но для проверки ок
+        println(jarTask.archiveFile.get().asFile.absolutePath)
+    }
+}
+def targetJavaVersion = 21
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        options.release.set(targetJavaVersion)
+    }
+}
+
+
+
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+
+}
+shadowJar {
+    relocate 'com.jeff_media.customblockdata', 'org.example.artyom.customblockdata'
+    archiveBaseName.set('Mechanisms') // Имя итогового файла
+    archiveClassifier.set('')       // Убираем суффикс '-all'
+    destinationDirectory.set(file('/home/artyom-krasovski/minecraft-server/plugins/'))
+}
+build.dependsOn shadowJar
