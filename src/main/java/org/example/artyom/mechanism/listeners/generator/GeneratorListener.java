@@ -24,6 +24,7 @@ import org.example.artyom.mechanism.utils.BlockUtil;
 import org.example.artyom.mechanism.utils.ToolUtil;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class GeneratorListener implements Listener {
@@ -63,33 +64,72 @@ public class GeneratorListener implements Listener {
         }
         NetworkElement networkGen = new NetworkElement(loc);
         Set<NetworkElement> neighbors = new HashSet<>();
+        Set<NetworkManager> connectedNetworks = new HashSet<>();
         // 6 сторон куба
-        Location[] sides = {
-                loc.clone().add(0, 1, 0),   // вверх
-                loc.clone().add(0, -1, 0),  // вниз
-                loc.clone().add(1, 0, 0),   // восток
-                loc.clone().add(-1, 0, 0),  // запад
-                loc.clone().add(0, 0, 1),   // юг
-                loc.clone().add(0, 0, -1)   // север
-        };
+        Location[] sides = BlockUtil.getSidesByLoc(loc);
 
         for(Location side : sides) {
-            for(NetworkManager netManager : networkSystems.getNetworks()) {
+            for (NetworkManager netManager : networkSystems.getNetworks()) {
                 NetworkElement elem = netManager.getElement(side);
-                if(elem != null) {
+                if (elem != null) {
                     neighbors.add(elem);
+                    connectedNetworks.add(netManager);
                 }
             }
         }
-
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
             networkManager.addElement(networkGen);
             player.sendMessage("Создаю новую сеть!");
         }
-        else if (neighbors.size() == 1){
-            player.sendMessage("Один сосед!");
+        else {
+            networkSystems.mergeNetworksAndAddElement(
+                    networkGen,
+                    connectedNetworks,
+                    player
+            );
         }
+//        if(neighbors.isEmpty()) {
+//            NetworkManager networkManager =  networkSystems.addNetworkManager();
+//            networkManager.addElement(networkGen);
+//            player.sendMessage("Создаю новую сеть!");
+//        }
+//        else {
+//            if (connectedNetworks.size() == 1) {
+//                // Один сосед - просто добавляем в существующую сеть
+//                NetworkManager targetNetwork = connectedNetworks.iterator().next();
+//                targetNetwork.addElement(networkGen);
+//                player.sendMessage("Добавлено в существующую сеть! (Соседей: " + neighbors.size() + ")");
+//            }
+//            else {
+//                // Несколько разных сетей - объединяем их в одну
+//                player.sendMessage("Обнаружено " + connectedNetworks.size() + " различных сетей! Объединяем...");
+//
+//                // Выбираем первую сеть как основную
+//                Iterator<NetworkManager> iterator = connectedNetworks.iterator();
+//                NetworkManager primaryNetwork = iterator.next();
+//
+//                // Добавляем новый элемент в основную сеть
+//                primaryNetwork.addElement(networkGen);
+//
+//                // Переносим все элементы из остальных сетей в основную
+//                while(iterator.hasNext()) {
+//                    NetworkManager secondaryNetwork = iterator.next();
+//
+//                    // Копируем все элементы из второстепенной сети
+//                    for(NetworkElement element : secondaryNetwork.getElements()) {
+//                        primaryNetwork.addElement(element);
+//                    }
+//
+//                    // Удаляем второстепенную сеть из системы
+//                    networkSystems.removeNetworkManager(secondaryNetwork);
+//
+//                    player.sendMessage("  - Объединена сеть с " + secondaryNetwork.getElements().size() + " элементами");
+//                }
+//
+//                player.sendMessage("Сети объединены! Теперь в сети " + primaryNetwork.getElements().size() + " элементов");
+//            }
+        
 
         // ШАГ 5: Сообщение игроку
         player.sendMessage("§a✓ Генератор успешно установлен!");

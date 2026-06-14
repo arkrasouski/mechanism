@@ -45,6 +45,23 @@ public class BlockUtil {
             BlockFace.UP, BlockFace.DOWN
     };
 
+    /**
+     * Возвращает всех соседей искомой локации
+     */
+    public static Location[] getSidesByLoc(Location loc){
+        // 6 сторон куба
+        return new Location[]{
+                loc.clone().add(0, 1, 0),   // вверх
+                loc.clone().add(0, -1, 0),  // вниз
+                loc.clone().add(1, 0, 0),   // восток
+                loc.clone().add(-1, 0, 0),  // запад
+                loc.clone().add(0, 0, 1),   // юг
+                loc.clone().add(0, 0, -1)   // север
+        };
+    }
+
+
+
 //    public static <T extends BaseMechanism, U extends BaseMechanismManager<T>> boolean validateLocation(Location location, U manager) {
 //        if (location == null || location.getWorld() == null) return false;
 //        Block block = location.getBlock();
