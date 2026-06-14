@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class NetworkManager {
     private final UUID networkId;
-    private final Map<Location, NetworkElement> elements = new ConcurrentHashMap<>();
+    private final Map<Location, INetworkElement> elements = new ConcurrentHashMap<>();
 
     public NetworkManager(UUID networkId) {
         this.networkId = networkId;
@@ -17,7 +17,7 @@ public class NetworkManager {
     /**
      * Добавить элемент в сеть
      */
-    public void addElement(NetworkElement newElement) {
+    public void addElement(INetworkElement newElement) {
         Location loc = newElement.getLocation();
 
         // Если элемент уже есть, не добавляем
@@ -27,12 +27,13 @@ public class NetworkManager {
         elements.put(loc, newElement);
 
         // Ищем соседей для нового элемента
-        Set<NetworkElement> neighbors = findNeighborsInNetwork(loc);
+        Set<INetworkElement> neighbors = findNeighborsInNetwork(loc);
 
         // Устанавливаем двусторонние связи
-        for (NetworkElement neighbor : neighbors) {
-            newElement.getConnections().add(neighbor);
-            neighbor.getConnections().add(newElement);
+        for (INetworkElement neighbor : neighbors) {
+
+            newElement.addConnection(neighbor);
+            neighbor.addConnection(newElement);
         }
     }
 
@@ -40,11 +41,11 @@ public class NetworkManager {
      * Удалить элемент из сети
      */
     public void removeElement(Location loc) {
-        NetworkElement element = elements.remove(loc);
+        INetworkElement element = elements.remove(loc);
         if (element != null) {
             //Удалить связи у соседей
-            for(NetworkElement connection : element.getConnections()){
-                connection.getConnections().remove(element);
+            for(INetworkElement connection : element.getConnections()){
+                connection.removeConnection(element);
             }
         }
     }
@@ -52,14 +53,14 @@ public class NetworkManager {
     /**
      * Получить элемент сети
      */
-    public NetworkElement getElement(Location loc) {
+    public INetworkElement getElement(Location loc) {
         return elements.get(loc);
     }
 
     /**
      * Получить все элементы сети
      */
-    public Collection<NetworkElement> getElements() {
+    public Collection<INetworkElement> getElements() {
         return elements.values();
     }
 
@@ -73,13 +74,13 @@ public class NetworkManager {
     /**
      * Найти всех соседей элемента в текущей сети
      */
-    private Set<NetworkElement> findNeighborsInNetwork(Location loc) {
-        Set<NetworkElement> neighbors = new HashSet<>();
+    private Set<INetworkElement> findNeighborsInNetwork(Location loc) {
+        Set<INetworkElement> neighbors = new HashSet<>();
         Location[] sides = BlockUtil.getSidesByLoc(loc);
 
         for (Location side : sides) {
             //текущая сеть содержит соседа - значит его добавляем
-            NetworkElement elem = elements.get(side);
+            INetworkElement elem = elements.get(side);
             if (elem != null) {
                 neighbors.add(elem);
             }

@@ -4,17 +4,16 @@ package org.example.artyom.mechanism.mechanism.generator;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.example.artyom.mechanism.mechanism.IEnergyStorage;
-import org.example.artyom.mechanism.mechanism.network.INetworkNode;
-import org.example.artyom.mechanism.mechanism.MechanismType;
+import org.example.artyom.mechanism.mechanism.network.INetworkElement;
+import org.example.artyom.mechanism.mechanism.network.INetworkProducer;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Generator // extends BaseMechanism
         implements
         IEnergyStorage,
-        IEnergyGenerator,
-        INetworkNode
+        INetworkProducer
         //, IEnergyConnector
 {
     private Location loc;
@@ -28,6 +27,9 @@ public class Generator // extends BaseMechanism
     private final int GENERATION_PER_TICK = 5;
     private final int CONSUME_FUEL_PER_TICK = 7;
     private final int CAPACITY = 1000;
+
+    //Сеть
+    private final Set<INetworkElement> connections = new HashSet<>();
     
     private static final BlockFace[] FACES = {
             BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN
@@ -73,7 +75,7 @@ public class Generator // extends BaseMechanism
         return actualExtracted; // вернёт 0..amount
     }
 
-    //Generator
+    //Generator (producer)
 
     @Override
     public int getGenerationPerTick() {
@@ -104,40 +106,26 @@ public class Generator // extends BaseMechanism
         return 0;
     }
 
-    // Network Node
-
-    @Override
-    public UUID getUuid() {
-        return null;
-    }
-
-    @Override
-    public MechanismType getType() {
-        return null;
-    }
+    // Network Element
 
     @Override
     public Location getLocation() {
-        return null;
+        return this.loc;
     }
 
     @Override
-    public List<UUID> getConnectedNodes() {
-        return List.of();
+    public Set<INetworkElement> getConnections() {
+        return this.connections;
     }
 
     @Override
-    public void addConnection(UUID nodeUuid) {
-
+    public void addConnection(INetworkElement element) {
+        connections.add(element);
     }
 
     @Override
-    public void removeConnection(UUID nodeUuid) {
-
+    public void removeConnection(INetworkElement element) {
+        connections.remove(element);
     }
 
-    @Override
-    public boolean hasConnection(UUID nodeUuid) {
-        return false;
-    }
 }

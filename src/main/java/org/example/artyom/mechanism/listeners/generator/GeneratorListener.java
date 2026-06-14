@@ -17,14 +17,16 @@ import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.generator.GeneratorManager;
-import org.example.artyom.mechanism.mechanism.network.NetworkElement;
+import org.example.artyom.mechanism.mechanism.network.INetworkElement;
+import org.example.artyom.mechanism.mechanism.network.INetworkProducer;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.utils.BlockUtil;
 import org.example.artyom.mechanism.utils.ToolUtil;
 
+import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.Queue;
 import java.util.Set;
 
 public class GeneratorListener implements Listener {
@@ -56,21 +58,20 @@ public class GeneratorListener implements Listener {
             return;
         }
         Generator generator = manager.createGenerator(loc, player);
-        //TODO: Совместить генератор и сеть
         if (generator == null) {
             event.setCancelled(true);
             player.sendMessage("§cОшибка при создании Генератора");
             return;
         }
-        NetworkElement networkGen = new NetworkElement(loc);
-        Set<NetworkElement> neighbors = new HashSet<>();
+        //NetworkElement networkGen = new NetworkElement(loc);
+        Set<INetworkElement> neighbors = new HashSet<>();
         Set<NetworkManager> connectedNetworks = new HashSet<>();
         // 6 сторон куба
         Location[] sides = BlockUtil.getSidesByLoc(loc);
 
         for(Location side : sides) {
             for (NetworkManager netManager : networkSystems.getNetworks()) {
-                NetworkElement elem = netManager.getElement(side);
+                INetworkElement elem = netManager.getElement(side);
                 if (elem != null) {
                     neighbors.add(elem);
                     connectedNetworks.add(netManager);
@@ -79,58 +80,16 @@ public class GeneratorListener implements Listener {
         }
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
-            networkManager.addElement(networkGen);
+            networkManager.addElement(generator);
             player.sendMessage("Создаю новую сеть!");
         }
         else {
             networkSystems.mergeNetworksAndAddElement(
-                    networkGen,
+                    generator,
                     connectedNetworks,
                     player
             );
         }
-//        if(neighbors.isEmpty()) {
-//            NetworkManager networkManager =  networkSystems.addNetworkManager();
-//            networkManager.addElement(networkGen);
-//            player.sendMessage("Создаю новую сеть!");
-//        }
-//        else {
-//            if (connectedNetworks.size() == 1) {
-//                // Один сосед - просто добавляем в существующую сеть
-//                NetworkManager targetNetwork = connectedNetworks.iterator().next();
-//                targetNetwork.addElement(networkGen);
-//                player.sendMessage("Добавлено в существующую сеть! (Соседей: " + neighbors.size() + ")");
-//            }
-//            else {
-//                // Несколько разных сетей - объединяем их в одну
-//                player.sendMessage("Обнаружено " + connectedNetworks.size() + " различных сетей! Объединяем...");
-//
-//                // Выбираем первую сеть как основную
-//                Iterator<NetworkManager> iterator = connectedNetworks.iterator();
-//                NetworkManager primaryNetwork = iterator.next();
-//
-//                // Добавляем новый элемент в основную сеть
-//                primaryNetwork.addElement(networkGen);
-//
-//                // Переносим все элементы из остальных сетей в основную
-//                while(iterator.hasNext()) {
-//                    NetworkManager secondaryNetwork = iterator.next();
-//
-//                    // Копируем все элементы из второстепенной сети
-//                    for(NetworkElement element : secondaryNetwork.getElements()) {
-//                        primaryNetwork.addElement(element);
-//                    }
-//
-//                    // Удаляем второстепенную сеть из системы
-//                    networkSystems.removeNetworkManager(secondaryNetwork);
-//
-//                    player.sendMessage("  - Объединена сеть с " + secondaryNetwork.getElements().size() + " элементами");
-//                }
-//
-//                player.sendMessage("Сети объединены! Теперь в сети " + primaryNetwork.getElements().size() + " элементов");
-//            }
-        
-
         // ШАГ 5: Сообщение игроку
         player.sendMessage("§a✓ Генератор успешно установлен!");
 
@@ -147,12 +106,9 @@ public class GeneratorListener implements Listener {
         Player player = event.getPlayer();
         Location loc = block.getLocation();
 
+        Generator generator = manager.getGenerator(loc);
         // Проверяем, является ли сломанный блок генератором
-        if(manager.getGenerator(loc) == null) return;
-
-        // Удаляем генератор
-        manager.deleteGenerator(loc);
-        spawnPlaceEffect(block);
+        if(generator == null) return;
 
         ItemStack tool = player.getInventory().getItemInMainHand();
         if (!ToolUtil.canBreakWithTool(player, tool)) {
@@ -160,6 +116,56 @@ public class GeneratorListener implements Listener {
             player.sendMessage("§c Генератор можно сломать только киркой!");
             return;
         }
+
+        Set<INetworkElement> neighbors = generator.getConnections();
+
+        for(INetworkElement neighbor : neighbors) {
+            neighbor.removeConnection(generator);
+        }
+        manager.deleteGenerator(loc);
+
+        Set<INetworkElement> unvisited  = new HashSet<>(neighbors);
+
+        //Пока ещё остались узлы, которые мы не обработали, продолжаем искать следующую компоненту.
+        while(!unvisited.isEmpty()){
+            //Берём любой один узел из множества unvisited как стартовую точку обхода.
+            INetworkElement start = unvisited.iterator().next();
+            //Запускаем BFS/DFS от этого узла и собираем все узлы, которые с ним связаны.
+            //В результате получаем одну группу — одну подсеть.
+            Set<INetworkElement> component = networkSystems.collectComponent(start);
+            //Удаляем из unvisited все узлы, которые уже вошли в найденную компоненту.
+            //То есть помечаем их как обработанные.
+            unvisited.removeAll(component);
+            //Создаём новый менеджер сети для этой найденной компоненты.
+            NetworkManager newNetworkManager = networkSystems.addNetworkManager();
+            for(INetworkElement element : component) {
+                newNetworkManager.addElement(element);
+            }
+        }
+
+        //Удаляем старую сеть
+        NetworkManager netManager = networkSystems.getNetworkManager(loc);
+        networkSystems.removeNetworkManager(netManager);
+
+//        NetworkManager netManager = networkSystems.getNetworkManager(loc);
+//
+//        for (INetworkElement neighbor : neighbors) {
+//            neighbor.removeConnection(generator);
+//            NetworkManager newNetManager = networkSystems.addNetworkManager();
+//            newNetManager.addElement(neighbor);
+//            if(!neighbor.getConnections().isEmpty()){
+//                Set<INetworkElement> newNeighbors = neighbor.getConnections();
+//                for(INetworkElement newNeighbor : newNeighbors){
+//                    newNetManager.addElement(newNeighbor);
+//                }
+//            }
+//        }
+//        // Удаляем генератор
+//        manager.deleteGenerator(loc);
+//
+//        //Удаляем старую сеть
+//        networkSystems.removeNetworkManager(netManager);
+        spawnPlaceEffect(block);
         event.getPlayer().sendMessage("§c Генератор разрушен!");
 
         // Отменяем обычный дроп
@@ -184,7 +190,7 @@ public class GeneratorListener implements Listener {
         // Проверяем, что это ПКМ по блоку палкой
         Player player = event.getPlayer();
         ItemStack tool = player.getInventory().getItemInMainHand();
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK && tool.getType() != Material.STICK) return;
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || tool.getType() != Material.STICK) return;
 
         Block block = event.getClickedBlock();
         if (block == null) return;
@@ -195,18 +201,36 @@ public class GeneratorListener implements Listener {
         // Отменяем событие, чтобы не открывался ванильный интерфейс
         event.setCancelled(true);
 
-        //
-        // TODO: ЗДЕСЬ БУДЕТ ЛОГИКА ДЛЯ ГЕНЕРАТОРСКИХ СТАТИСТИК
-        //
-
-
+        //Информация о сети
+        showNetworkInfo(player, generator);
     }
 
     /**
      * Печать информации по графу
      */
-    private void showNetworkInfo(Player player, Location loc) {
+    private void showNetworkInfo(Player player, INetworkElement netElem) {
+        Location loc = netElem.getLocation();
+        NetworkManager netManager = networkSystems.getNetworkManager(loc);
 
+        player.sendMessage("§6=== Информация о сети ===");
+        player.sendMessage("§7ID сети: §f" + netManager.getNetworkId());
+        player.sendMessage("§7Локация элемента: §f" + loc);
+        player.sendMessage("§7Компонентов: §f" + netManager.getElements().size());
+
+        // Дополнительная информация (если есть доступ к конкретным множествам)
+        if (netElem instanceof INetworkProducer) {
+            player.sendMessage("Это генератор!");
+
+            //player.sendMessage("§7  Валидна: " + (enet.isValid() ? "§a✓" : "§c✗"));
+        }
+        int generatorCount = 0;
+        for (INetworkElement elem : netManager.getElements()) {
+            if(elem instanceof INetworkProducer) {
+                generatorCount++;
+            }
+
+        }
+        player.sendMessage("§7Всего: " + generatorCount + " Генераторов" );
     }
 
 

@@ -1,5 +1,6 @@
 package org.example.artyom.mechanism.mechanism.network;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -20,6 +21,18 @@ public class NetworkSystems {
      */
     public NetworkManager getNetworkManager(UUID uuid) {
         return networks.get(uuid);
+    }
+
+    /**
+     * Найти сеть по локации
+     */
+    public NetworkManager getNetworkManager(Location location) {
+        for(NetworkManager networkManager : getNetworks()) {
+            if(networkManager.getElement(location) != null) {
+                return networkManager;
+            }
+        }
+        return null;
     }
 
     /**
@@ -49,7 +62,7 @@ public class NetworkSystems {
     /**
      * Объединение множества сетей с добавлением узла
      */
-    public void mergeNetworksAndAddElement(NetworkElement newElement,
+    public void mergeNetworksAndAddElement(INetworkElement newElement,
                                             Set<NetworkManager> networks,
                                             Player player) {
         if (networks.size() == 1) {
@@ -66,7 +79,7 @@ public class NetworkSystems {
             // Переносим элементы из других сетей
             for (NetworkManager secondaryNetwork : networks) {
                 if (secondaryNetwork != primaryNetwork) {
-                    for (NetworkElement element : secondaryNetwork.getElements()) {
+                    for (INetworkElement element : secondaryNetwork.getElements()) {
                         primaryNetwork.addElement(element); // Связи добавляем только новые! старые остаются
                     }
                     removeNetworkManager(secondaryNetwork);
@@ -82,6 +95,28 @@ public class NetworkSystems {
                     primaryNetwork.getElements().size()
             ));
         }
+    }
+
+    /**
+     * BFS
+     */
+    public Set<INetworkElement> collectComponent(INetworkElement start) {
+        Set<INetworkElement> visited = new HashSet<>();
+        Queue<INetworkElement> queue = new ArrayDeque<>();
+
+        queue.add(start);
+        visited.add(start);
+
+        while (!queue.isEmpty()) {
+            INetworkElement current = queue.poll();
+            for (INetworkElement neighbor : current.getConnections()) {
+                if (visited.add(neighbor)) {
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        return visited;
     }
 
 }
