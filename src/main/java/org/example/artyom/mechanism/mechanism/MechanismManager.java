@@ -1,27 +1,30 @@
-package org.example.artyom.mechanism.mechanism.generator;
+package org.example.artyom.mechanism.mechanism;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.mechanism.generator.Generator;
+import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class GeneratorManager {
+public class MechanismManager<T extends INetworkElement> {
+
     private final Mechanism plugin;
 
-    private final Map<Location, Generator> allGenerators = new ConcurrentHashMap<>();
+    private final Map<Location, T> allMechanisms = new ConcurrentHashMap<>();
 
-    public GeneratorManager(Mechanism plugin) {
+    public MechanismManager(Mechanism plugin) {
         this.plugin = plugin;
     }
     /**
      * Создать генератор
      */
-    public void registerGenerator(Generator generator, Location location) {
-        allGenerators.put(location, generator);
+    public void registerGenerator(T mechanism, Location location) {
+        allMechanisms.put(location, mechanism);
         LogUtil.info("Создан новый Генератор на " + location);
     }
 
@@ -29,30 +32,28 @@ public class GeneratorManager {
      * Удалить генератор
      */
     public void deleteGenerator(Location location) {
-        allGenerators.remove(location);
+        allMechanisms.remove(location);
         LogUtil.info("Удален генератор с " + location);
     }
 
     /**
      * Получает механизм по локации
      */
-    public Generator getGenerator(Location location) {
-        return allGenerators.get(location);
+    public T getMechanism(Location location) {
+        return allMechanisms.get(location);
     }
 
     /**
      * Получает механизм по блоку
      */
-    public Generator getGenerator(Block block) {
-        return getGenerator(block.getLocation());
+    public T getGenerator(Block block) {
+        return getMechanism(block.getLocation());
     }
 
     /**
      * Проверяет, является ли блок механизмом данного типа
      */
-    public boolean isGenerator(Block block) {
-        return allGenerators.containsKey(block.getLocation());
+    public boolean isMechanism(Block block) {
+        return allMechanisms.containsKey(block.getLocation());
     }
-
-
 }

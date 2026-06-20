@@ -14,7 +14,6 @@ public class Generator // extends BaseMechanism
         implements
         IEnergyStorage,
         INetworkProducer
-        //, IEnergyConnector
 {
     private Location loc;
     private int currentEnergy;
@@ -126,6 +125,10 @@ public class Generator // extends BaseMechanism
     @Override
     public void removeConnection(INetworkElement element) {
         connections.remove(element);
+    }
+
+    public static Generator getBaseGenerator(Location loc) {
+        return new Generator(loc, 0, true);
     }
 
 }

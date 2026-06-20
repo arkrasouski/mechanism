@@ -1,4 +1,4 @@
-package org.example.artyom.mechanism.listeners.generator;
+package org.example.artyom.mechanism.listeners;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.items.GeneratorItem;
+import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.generator.GeneratorManager;
@@ -27,15 +28,17 @@ import org.example.artyom.mechanism.utils.ToolUtil;
 import java.util.HashSet;
 import java.util.Set;
 
-public class GeneratorListener implements Listener {
+public class BaseListener<N extends INetworkElement> implements Listener {
     private final Mechanism plugin;
-    private final GeneratorManager manager;
+    private final MechanismManager<N> manager;
     private final NetworkSystems networkSystems;
+    private final MechanismType mechanismType;
 
-    public GeneratorListener(Mechanism plugin, GeneratorManager manager, NetworkSystems networkSystems) {
+    public BaseListener(Mechanism plugin, MechanismManager<N> manager, NetworkSystems networkSystems, MechanismType mechanismType) {
         this.plugin = plugin;
         this.manager = manager;
         this.networkSystems = networkSystems;
+        this.mechanismType = mechanismType;
     }
 
     /**
