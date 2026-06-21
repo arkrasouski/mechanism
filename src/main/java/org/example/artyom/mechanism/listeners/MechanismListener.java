@@ -204,17 +204,25 @@ public class MechanismListener implements Listener {
         // Дополнительная информация (если есть доступ к конкретным множествам)
         if (netElem instanceof IProducer) {
             player.sendMessage("Это генератор!");
-
             //player.sendMessage("§7  Валидна: " + (enet.isValid() ? "§a✓" : "§c✗"));
         }
+        else {
+            player.sendMessage("Это кабель!");
+        }
+
         int generatorCount = 0;
+        int cableCount = 0;
         for (INetworkElement elem : netManager.getElements()) {
             if(elem instanceof IProducer) {
                 generatorCount++;
             }
+            else {
+                cableCount++;
+            }
 
         }
         player.sendMessage("§7Всего: " + generatorCount + " Генераторов" );
+        player.sendMessage("§7Всего: " + cableCount + " Кабелей");
     }
 
 
