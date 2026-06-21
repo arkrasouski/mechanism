@@ -1,19 +1,19 @@
-package org.example.artyom.mechanism.mechanism.cable;
+package org.example.artyom.mechanism.mechanism.network;
 
 import org.bukkit.Location;
-import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class Cable implements INetworkElement {
+public abstract class NetworkElement implements INetworkElement {
 
+    //Местоположение
     private final Location location;
-    //Сеть
+    //Сетевые соединения
     private final Set<INetworkElement> connections = new HashSet<>();
 
-    public Cable(Location loc){
-        this.location = loc;
+    public NetworkElement(Location location) {
+        this.location = location;
     }
 
     @Override

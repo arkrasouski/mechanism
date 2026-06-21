@@ -2,6 +2,7 @@ package org.example.artyom.mechanism.mechanism;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.example.artyom.mechanism.mechanism.cable.Cable;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 
@@ -14,14 +15,18 @@ public enum MechanismType  {
              "Генератор",
              "Супер мега генератор")
     ,
-    //CABLE(Cable.class ,Material.PURPLE_STAINED_GLASS_PANE, "Кабель", "Супер мега кабель"),
+    CABLE(
+            Material.PURPLE_STAINED_GLASS_PANE,
+            "Кабель",
+            "Супер мега кабель")
+    ,
     //BARRIER(Barrier.class, Material.BARREL, "Барьер", "Супер мега барьер")
     ;
     private static final Map<MechanismType, IMechanismConstructor> registry = new HashMap<>();
 
     static {
         registry.put(GENERATOR, Generator::new);
-//        registry.put(WOOD, loc -> new WoodMechanism(loc));
+        registry.put(CABLE, Cable::new);
 //        registry.put(IRON, loc -> new IronMechanism(loc));
 //        registry.put(GOLD, loc -> new GoldMechanism(loc));
     }

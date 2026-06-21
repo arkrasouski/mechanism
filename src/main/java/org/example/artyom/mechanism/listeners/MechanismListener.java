@@ -17,7 +17,7 @@ import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
-import org.example.artyom.mechanism.mechanism.network.INetworkProducer;
+import org.example.artyom.mechanism.mechanism.base.IProducer;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.utils.BlockUtil;
@@ -202,14 +202,14 @@ public class MechanismListener implements Listener {
         player.sendMessage("§7Компонентов: §f" + netManager.getElements().size());
 
         // Дополнительная информация (если есть доступ к конкретным множествам)
-        if (netElem instanceof INetworkProducer) {
+        if (netElem instanceof IProducer) {
             player.sendMessage("Это генератор!");
 
             //player.sendMessage("§7  Валидна: " + (enet.isValid() ? "§a✓" : "§c✗"));
         }
         int generatorCount = 0;
         for (INetworkElement elem : netManager.getElements()) {
-            if(elem instanceof INetworkProducer) {
+            if(elem instanceof IProducer) {
                 generatorCount++;
             }
 
