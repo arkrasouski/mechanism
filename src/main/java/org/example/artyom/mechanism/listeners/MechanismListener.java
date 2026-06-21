@@ -162,7 +162,7 @@ public class MechanismListener implements Listener {
         block.setType(Material.AIR);
 
         // Дропаем предмет генератора
-        ItemStack mechanismItem = new GeneratorItem(plugin).createItem(1);
+        ItemStack mechanismItem = mechanismType.create(plugin).createItem(1);
         block.getWorld().dropItemNaturally(block.getLocation(), mechanismItem);
     }
 
