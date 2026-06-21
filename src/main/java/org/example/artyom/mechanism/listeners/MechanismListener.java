@@ -16,8 +16,6 @@ import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
-import org.example.artyom.mechanism.mechanism.generator.Generator;
-import org.example.artyom.mechanism.mechanism.generator.GeneratorManager;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.INetworkProducer;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
@@ -28,13 +26,13 @@ import org.example.artyom.mechanism.utils.ToolUtil;
 import java.util.HashSet;
 import java.util.Set;
 
-public class BaseListener<N extends INetworkElement> implements Listener {
+public class MechanismListener implements Listener {
     private final Mechanism plugin;
-    private final MechanismManager<N> manager;
+    private final MechanismManager manager;
     private final NetworkSystems networkSystems;
     private final MechanismType mechanismType;
 
-    public BaseListener(Mechanism plugin, MechanismManager<N> manager, NetworkSystems networkSystems, MechanismType mechanismType) {
+    public MechanismListener(Mechanism plugin, MechanismManager manager, NetworkSystems networkSystems, MechanismType mechanismType) {
         this.plugin = plugin;
         this.manager = manager;
         this.networkSystems = networkSystems;
@@ -42,28 +40,29 @@ public class BaseListener<N extends INetworkElement> implements Listener {
     }
 
     /**
-     * Ставим генератор
+     * Ставим механизм
      */
     @EventHandler
-    public void onGeneratorPlace(BlockPlaceEvent event) {
+    public void onMechanismPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
         Location loc = block.getLocation();
         Player player = event.getPlayer();
         ItemStack item = event.getItemInHand();
 
-        if (!GeneratorItem.isGeneratorItem(plugin, item, MechanismType.GENERATOR)) {return;}
+        if (!GeneratorItem.isGeneratorItem(plugin, item, mechanismType)) {return;}
 
         if (!canPlaceMechanism(block, player)) {
             event.setCancelled(true);
-            player.sendMessage("§cНельзя установить генератор здесь!");
+            player.sendMessage("§cНельзя установить " + mechanismType.getDisplayName() + " здесь!");
             return;
         }
-        Generator generator = Generator.getBaseGenerator(loc);
-        manager.registerGenerator(generator, loc);
 
-        if (generator == null) {
+        INetworkElement mechanism = mechanismType.create(loc);
+        manager.registerMechanism(mechanism, loc);
+
+        if (mechanism == null) {
             event.setCancelled(true);
-            player.sendMessage("§cОшибка при создании Генератора");
+            player.sendMessage("§cОшибка при создании " + mechanismType.getDisplayName());
             return;
         }
         //NetworkElement networkGen = new NetworkElement(loc);
@@ -83,18 +82,18 @@ public class BaseListener<N extends INetworkElement> implements Listener {
         }
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
-            networkManager.addElement(generator);
+            networkManager.addElement(mechanism);
             player.sendMessage("Создаю новую сеть!");
         }
         else {
             networkSystems.mergeNetworksAndAddElement(
-                    generator,
+                    mechanism,
                     connectedNetworks,
                     player
             );
         }
         // ШАГ 5: Сообщение игроку
-        player.sendMessage("§a✓ Генератор успешно установлен!");
+        player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
 
         // ШАГ 6: Визуальный эффект
         spawnPlaceEffect(block);
@@ -109,23 +108,23 @@ public class BaseListener<N extends INetworkElement> implements Listener {
         Player player = event.getPlayer();
         Location loc = block.getLocation();
 
-        Generator generator = manager.getGenerator(loc);
+        INetworkElement mechanism = manager.getMechanism(loc);
         // Проверяем, является ли сломанный блок генератором
-        if(generator == null) return;
+        if(mechanism == null) return;
 
         ItemStack tool = player.getInventory().getItemInMainHand();
         if (!ToolUtil.canBreakWithTool(player, tool)) {
             event.setCancelled(true);
-            player.sendMessage("§c Генератор можно сломать только киркой!");
+            player.sendMessage("§c " + mechanismType.getDisplayName() + " можно сломать только киркой!");
             return;
         }
 
-        Set<INetworkElement> neighbors = generator.getConnections();
+        Set<INetworkElement> neighbors = mechanism.getConnections();
 
         for(INetworkElement neighbor : neighbors) {
-            neighbor.removeConnection(generator);
+            neighbor.removeConnection(mechanism);
         }
-        manager.deleteGenerator(loc);
+        manager.deleteMechanism(loc);
 
         Set<INetworkElement> unvisited  = new HashSet<>(neighbors);
 
@@ -151,7 +150,7 @@ public class BaseListener<N extends INetworkElement> implements Listener {
         networkSystems.removeNetworkManager(netManager);
 
         spawnPlaceEffect(block);
-        event.getPlayer().sendMessage("§c Генератор разрушен!");
+        event.getPlayer().sendMessage("§c " + mechanismType.getDisplayName() + " разрушен!");
 
         // Отменяем обычный дроп
         event.setDropItems(false);
@@ -180,14 +179,14 @@ public class BaseListener<N extends INetworkElement> implements Listener {
         Block block = event.getClickedBlock();
         if (block == null) return;
 
-        Generator generator = manager.getGenerator(block.getLocation());
-        if(generator == null) return;
+        INetworkElement mechanism = manager.getMechanism(block.getLocation());
+        if(mechanism == null) return;
 
         // Отменяем событие, чтобы не открывался ванильный интерфейс
         event.setCancelled(true);
 
         //Информация о сети
-        showNetworkInfo(player, generator);
+        showNetworkInfo(player, mechanism);
     }
 
     /**

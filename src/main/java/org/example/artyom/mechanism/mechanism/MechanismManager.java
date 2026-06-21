@@ -2,20 +2,18 @@ package org.example.artyom.mechanism.mechanism;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
 import org.example.artyom.mechanism.Mechanism;
-import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MechanismManager<T extends INetworkElement> {
+public class MechanismManager {
 
     private final Mechanism plugin;
 
-    private final Map<Location, T> allMechanisms = new ConcurrentHashMap<>();
+    private final Map<Location, INetworkElement> allMechanisms = new ConcurrentHashMap<>();
 
     public MechanismManager(Mechanism plugin) {
         this.plugin = plugin;
@@ -23,7 +21,7 @@ public class MechanismManager<T extends INetworkElement> {
     /**
      * Создать генератор
      */
-    public void registerGenerator(T mechanism, Location location) {
+    public void registerMechanism(INetworkElement mechanism, Location location) {
         allMechanisms.put(location, mechanism);
         LogUtil.info("Создан новый Генератор на " + location);
     }
@@ -31,7 +29,7 @@ public class MechanismManager<T extends INetworkElement> {
     /**
      * Удалить генератор
      */
-    public void deleteGenerator(Location location) {
+    public void deleteMechanism(Location location) {
         allMechanisms.remove(location);
         LogUtil.info("Удален генератор с " + location);
     }
@@ -39,14 +37,14 @@ public class MechanismManager<T extends INetworkElement> {
     /**
      * Получает механизм по локации
      */
-    public T getMechanism(Location location) {
+    public INetworkElement getMechanism(Location location) {
         return allMechanisms.get(location);
     }
 
     /**
      * Получает механизм по блоку
      */
-    public T getGenerator(Block block) {
+    public INetworkElement getMechanism(Block block) {
         return getMechanism(block.getLocation());
     }
 

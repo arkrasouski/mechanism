@@ -3,7 +3,10 @@ package org.example.artyom.mechanism;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.example.artyom.mechanism.commands.MechanismCommands;
+import org.example.artyom.mechanism.listeners.MechanismListener;
 import org.example.artyom.mechanism.listeners.generator.GeneratorListener;
+import org.example.artyom.mechanism.mechanism.MechanismManager;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.generator.GeneratorManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.utils.LogUtil;
@@ -20,7 +23,7 @@ public final class Mechanism extends JavaPlugin {
         LogUtil.init(this);
 
         //managers
-        GeneratorManager generatorManager = new GeneratorManager(this);
+        MechanismManager generatorManager = new MechanismManager(this);
 
         //network
         NetworkSystems networkSystems = new NetworkSystems();
@@ -32,7 +35,12 @@ public final class Mechanism extends JavaPlugin {
         getCommand("getcable").setExecutor(new MechanismCommands(this));
 
         //listeners
-        Bukkit.getPluginManager().registerEvents(new GeneratorListener(this, generatorManager, networkSystems),this);
+        Bukkit.getPluginManager().registerEvents(
+                new MechanismListener(this,
+                                        generatorManager,
+                                        networkSystems,
+                                        MechanismType.GENERATOR
+                                      ),this);
     }
 
     @Override

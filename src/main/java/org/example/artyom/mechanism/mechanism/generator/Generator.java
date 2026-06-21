@@ -34,7 +34,7 @@ public class Generator // extends BaseMechanism
             BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN
     };
 
-    Generator(
+    public Generator(
         Location loc,
         int currentEnergy,
         boolean isWorking
@@ -44,6 +44,11 @@ public class Generator // extends BaseMechanism
         this.isWorking = isWorking;
         this.hasFuelItem = false;
     }
+
+    public Generator(Location location) {
+        this(location, 0, true);
+    }
+
     //Storage
     @Override
     public int getCurrentEnergy() {
