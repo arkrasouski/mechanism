@@ -48,6 +48,13 @@ public class NetworkSystems {
     }
 
     /**
+     * Добавить сеть из БД по id
+     */
+    public void addNetworkManager(NetworkManager networkManager) {
+        networks.put(networkManager.getNetworkId(), networkManager);
+    }
+
+    /**
      * Удалить сеть по id
      */
     public void removeNetworkManager(UUID networkId) {

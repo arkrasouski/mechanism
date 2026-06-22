@@ -18,6 +18,9 @@ public final class Mechanism extends JavaPlugin {
     private NetworkRepository networkRepository;
     private GeneratorRepository generatorRepository;
 
+    private static NetworkSystems networkSystems;
+    private static MechanismManager generatorManager;
+
     @Override
     public void onEnable() {
         // Plugin startup logic
@@ -34,10 +37,10 @@ public final class Mechanism extends JavaPlugin {
         networkRepository = new NetworkRepository(databaseManager);
         generatorRepository = new GeneratorRepository(databaseManager);
         //managers
-        MechanismManager generatorManager = new MechanismManager(this);
+        generatorManager = new MechanismManager(this);
         MechanismManager cableManager = new MechanismManager(this);
         //network
-        NetworkSystems networkSystems = new NetworkSystems();
+        networkSystems = new NetworkSystems();
 
         //commands
         getCommand("getgen").setExecutor(new MechanismCommands(this));
@@ -58,6 +61,7 @@ public final class Mechanism extends JavaPlugin {
                                         networkSystems,
                                         MechanismType.CABLE
                                         ), this);
+        GeneratorRepository.restoreAllGenerators();
     }
 
     @Override
@@ -74,4 +78,7 @@ public final class Mechanism extends JavaPlugin {
     public NetworkRepository getNetworkRepository() { return networkRepository; }
     public GeneratorRepository getGeneratorRepository() { return generatorRepository; }
 
+    //Getters для Менеджеров
+    public static MechanismManager getGeneratorManager() { return generatorManager; }
+    public static NetworkSystems getNetworkSystems() { return networkSystems; }
 }

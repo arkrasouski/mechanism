@@ -2,11 +2,15 @@ package org.example.artyom.mechanism.database;
 
 
 
+import com.google.common.graph.Network;
+import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
+import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -81,5 +85,30 @@ public class NetworkRepository {
             e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * Получить все сети из бд
+     */
+
+    public static List<NetworkManager> getAllNetworks() {
+        List<NetworkManager> networks = new ArrayList<>();
+        String sql = "SELECT * FROM networks";
+
+        try (Statement stmt = db.getConnection().createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                NetworkManager network = new NetworkManager(
+                        UUID.fromString(rs.getString("network_id"))
+                );
+                Mechanism.getNetworkSystems().addNetworkManager(network);
+                networks.add(network);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return networks;
     }
 }
