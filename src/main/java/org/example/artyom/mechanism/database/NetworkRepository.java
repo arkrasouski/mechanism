@@ -12,14 +12,14 @@ import java.util.List;
 import java.util.UUID;
 
 public class NetworkRepository {
-    private final DatabaseManager db;
+    private static DatabaseManager db;
 
     public NetworkRepository(DatabaseManager db) {
-        this.db = db;
+        NetworkRepository.db = db;
     }
 
     // Создать новую сеть
-    public boolean createNetwork(NetworkManager network) {
+    public static boolean createNetwork(NetworkManager network) {
         String sql = "INSERT INTO networks (network_id, world_name) VALUES (?, ?)";
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
@@ -33,7 +33,7 @@ public class NetworkRepository {
     }
 
     // Получить сеть по ID
-    public NetworkManager getNetworkById(String networkId) {
+    public static NetworkManager getNetworkById(String networkId) {
         String sql = "SELECT * FROM networks WHERE network_id = ?";
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
@@ -51,7 +51,7 @@ public class NetworkRepository {
     }
 
     // Получить все сети в мире
-    public List<NetworkManager> getNetworkByWorld(String worldName) {
+    public static List<NetworkManager> getNetworkByWorld(String worldName) {
         List<NetworkManager> networks = new ArrayList<>();
         String sql = "SELECT * FROM networks WHERE world_name = ?";
 
@@ -71,7 +71,7 @@ public class NetworkRepository {
     }
 
     // Удалить сеть
-    public boolean deleteNetwork(String networkId) {
+    public static boolean deleteNetwork(String networkId) {
         String sql = "DELETE FROM networks WHERE network_id = ?";
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {

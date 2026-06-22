@@ -4,6 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.example.artyom.mechanism.commands.MechanismCommands;
 import org.example.artyom.mechanism.database.DatabaseManager;
+import org.example.artyom.mechanism.database.GeneratorRepository;
+import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.listeners.MechanismListener;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -13,6 +15,8 @@ import org.example.artyom.mechanism.utils.LogUtil;
 public final class Mechanism extends JavaPlugin {
 
     private DatabaseManager databaseManager;
+    private NetworkRepository networkRepository;
+    private GeneratorRepository generatorRepository;
 
     @Override
     public void onEnable() {
@@ -27,7 +31,8 @@ public final class Mechanism extends JavaPlugin {
         String dbPath = getDataFolder().getPath() + "/energy_networks.db";
         // Инициализация DatabaseManager
         databaseManager = new DatabaseManager(this, dbPath);
-
+        networkRepository = new NetworkRepository(databaseManager);
+        generatorRepository = new GeneratorRepository(databaseManager);
         //managers
         MechanismManager generatorManager = new MechanismManager(this);
         MechanismManager cableManager = new MechanismManager(this);
@@ -64,4 +69,9 @@ public final class Mechanism extends JavaPlugin {
         // Plugin shutdown logic
         getLogger().info("NetworkSystems disabled!");
     }
+
+    // Getters для Repository'ев
+    public NetworkRepository getNetworkRepository() { return networkRepository; }
+    public GeneratorRepository getGeneratorRepository() { return generatorRepository; }
+
 }

@@ -2,6 +2,8 @@ package org.example.artyom.mechanism.mechanism.network;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.example.artyom.mechanism.database.NetworkRepository;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,11 +65,13 @@ public class NetworkSystems {
      * Объединение множества сетей с добавлением узла
      */
     public void mergeNetworksAndAddElement(INetworkElement newElement,
+                                            MechanismType mechanismType,
                                             Set<NetworkManager> networks,
                                             Player player) {
         if (networks.size() == 1) {
             NetworkManager network = networks.iterator().next();
             network.addElement(newElement);
+            mechanismType.addNetworkToDB(newElement);
             player.sendMessage("Добавлено в существующую сеть!" + newElement.getNetworkId());
         }
         else if (networks.size() > 1) {
@@ -81,13 +85,17 @@ public class NetworkSystems {
                 if (secondaryNetwork != primaryNetwork) {
                     for (INetworkElement element : secondaryNetwork.getElements()) {
                         primaryNetwork.addElement(element); // Связи добавляем только новые! старые остаются
+                        mechanismType.addNetworkToDB(element);
                     }
                     removeNetworkManager(secondaryNetwork);
+                    mechanismType.removeFromPreviousNetwork(secondaryNetwork.getNetworkId());
+                    NetworkRepository.deleteNetwork(secondaryNetwork.getNetworkId().toString());
                 }
             }
 
             // Добавляем новый элемент
             primaryNetwork.addElement(newElement);
+            mechanismType.addNetworkToDB(newElement);
 
             player.sendMessage(String.format(
                     "✓ Объединено %d сетей! Всего элементов: %d",

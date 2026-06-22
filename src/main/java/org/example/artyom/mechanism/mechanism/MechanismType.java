@@ -3,6 +3,7 @@ package org.example.artyom.mechanism.mechanism;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.database.GeneratorRepository;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.items.CableItem;
 import org.example.artyom.mechanism.items.GeneratorItem;
@@ -13,6 +14,7 @@ import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public enum MechanismType  {
     GENERATOR(
@@ -29,6 +31,8 @@ public enum MechanismType  {
     ;
     private static final Map<MechanismType, IMechanismConstructor> registry = new HashMap<>();
     private static final Map<MechanismType, IMechanismItemConstructor> registryItem = new HashMap<>();
+    private static final Map<MechanismType, IMechanismRepositoryConstructor> registryRepository = new HashMap<>();
+    private static final Map<MechanismType, IMechanismRepositoryRemover> registryRepositoryRemover = new HashMap<>();
     static {
         registry.put(GENERATOR, Generator::new);
         registry.put(CABLE, Cable::new);
@@ -37,6 +41,11 @@ public enum MechanismType  {
 
         registryItem.put(GENERATOR, GeneratorItem::new);
         registryItem.put(CABLE, CableItem::new);
+
+        registryRepository.put(GENERATOR, GeneratorRepository::addGenerator);
+//        registryRepository.put();
+
+        registryRepositoryRemover.put(GENERATOR, GeneratorRepository::removeGeneratorsByNetwork);
     }
 
     private final Material material;
@@ -70,4 +79,16 @@ public enum MechanismType  {
      * Создает предмет нужного класса
      */
     public BaseItem create(Mechanism plugin) {return registryItem.get(this).create(plugin); }
+
+    /**
+     * Добавляет в бд нужный механизм
+     */
+    public boolean addNetworkToDB(INetworkElement mechanism) {return registryRepository.get(this).add(mechanism);}
+
+    /**
+     * Удаляет
+     */
+    public boolean removeFromPreviousNetwork(UUID networkId) {
+        return registryRepositoryRemover.get(this).remove(networkId.toString());
+    }
 }

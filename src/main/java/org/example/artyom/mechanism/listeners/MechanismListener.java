@@ -13,6 +13,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -82,12 +83,15 @@ public class MechanismListener implements Listener {
         }
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
+            NetworkRepository.createNetwork(networkManager);
             networkManager.addElement(mechanism);
+            mechanismType.addNetworkToDB(mechanism);
             player.sendMessage("Создаю новую сеть!");
         }
         else {
             networkSystems.mergeNetworksAndAddElement(
                     mechanism,
+                    mechanismType,
                     connectedNetworks,
                     player
             );
@@ -103,7 +107,7 @@ public class MechanismListener implements Listener {
      * Ломаем генератор
      */
     @EventHandler
-    public void onGeneratorBreak(BlockBreakEvent event) {
+    public void onMechanismBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
         Player player = event.getPlayer();
         Location loc = block.getLocation();
@@ -140,13 +144,17 @@ public class MechanismListener implements Listener {
             unvisited.removeAll(component);
             //Создаём новый менеджер сети для этой найденной компоненты.
             NetworkManager newNetworkManager = networkSystems.addNetworkManager();
+            NetworkRepository.createNetwork(newNetworkManager);
             for(INetworkElement element : component) {
                 newNetworkManager.addElement(element);
+                mechanismType.addNetworkToDB(element);
             }
         }
 
         //Удаляем старую сеть
         NetworkManager netManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
+        mechanismType.removeFromPreviousNetwork(mechanism.getNetworkId());
+        NetworkRepository.deleteNetwork(netManager.getNetworkId().toString());
         networkSystems.removeNetworkManager(netManager);
 
         spawnPlaceEffect(block);
