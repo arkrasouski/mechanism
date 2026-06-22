@@ -146,7 +146,7 @@ public class MechanismListener implements Listener {
         }
 
         //Удаляем старую сеть
-        NetworkManager netManager = networkSystems.getNetworkManager(loc);
+        NetworkManager netManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
         networkSystems.removeNetworkManager(netManager);
 
         spawnPlaceEffect(block);
@@ -194,7 +194,7 @@ public class MechanismListener implements Listener {
      */
     private void showNetworkInfo(Player player, INetworkElement netElem) {
         Location loc = netElem.getLocation();
-        NetworkManager netManager = networkSystems.getNetworkManager(loc);
+        NetworkManager netManager = networkSystems.getNetworkManager(netElem.getNetworkId());
 
         player.sendMessage("§6=== Информация о сети ===");
         player.sendMessage("§7ID сети: §f" + netManager.getNetworkId());

@@ -35,6 +35,8 @@ public class NetworkManager {
             newElement.addConnection(neighbor);
             neighbor.addConnection(newElement);
         }
+
+        newElement.setNetworkId(networkId);
     }
 
     /**

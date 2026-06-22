@@ -3,6 +3,7 @@ package org.example.artyom.mechanism;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.example.artyom.mechanism.commands.MechanismCommands;
+import org.example.artyom.mechanism.database.DatabaseManager;
 import org.example.artyom.mechanism.listeners.MechanismListener;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -10,6 +11,8 @@ import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 public final class Mechanism extends JavaPlugin {
+
+    private DatabaseManager databaseManager;
 
     @Override
     public void onEnable() {
@@ -19,6 +22,11 @@ public final class Mechanism extends JavaPlugin {
         // Перезагружаем конфиг (на всякий случай)
         reloadConfig();
         LogUtil.init(this);
+
+        // Создание пути к базе данных
+        String dbPath = getDataFolder().getPath() + "/energy_networks.db";
+        // Инициализация DatabaseManager
+        databaseManager = new DatabaseManager(this, dbPath);
 
         //managers
         MechanismManager generatorManager = new MechanismManager(this);
@@ -49,6 +57,10 @@ public final class Mechanism extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Закрытие соединения с базой
+        if (databaseManager != null) {
+            databaseManager.close();
+        }
         // Plugin shutdown logic
         getLogger().info("NetworkSystems disabled!");
     }

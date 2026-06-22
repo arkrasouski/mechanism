@@ -17,10 +17,10 @@ public class NetworkSystems {
     }
 
     /**
-     * Найти сеть по id
+     * Получить сеть по ID
      */
-    public NetworkManager getNetworkManager(UUID uuid) {
-        return networks.get(uuid);
+    public NetworkManager getNetworkManager(UUID networkId) {
+        return networks.get(networkId);
     }
 
     /**
@@ -68,7 +68,7 @@ public class NetworkSystems {
         if (networks.size() == 1) {
             NetworkManager network = networks.iterator().next();
             network.addElement(newElement);
-            player.sendMessage("Добавлено в существующую сеть!");
+            player.sendMessage("Добавлено в существующую сеть!" + newElement.getNetworkId());
         }
         else if (networks.size() > 1) {
             // Выбираем основную сеть (самую большую)

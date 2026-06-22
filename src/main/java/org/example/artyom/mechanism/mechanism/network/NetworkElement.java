@@ -4,11 +4,14 @@ import org.bukkit.Location;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public abstract class NetworkElement implements INetworkElement {
 
     //Местоположение
     private final Location location;
+    //Сеть
+    private UUID networkId;
     //Сетевые соединения
     private final Set<INetworkElement> connections = new HashSet<>();
 
@@ -35,4 +38,10 @@ public abstract class NetworkElement implements INetworkElement {
     public void removeConnection(INetworkElement element) {
         connections.remove(element);
     }
+
+    @Override
+    public UUID getNetworkId() { return networkId; }
+
+    @Override
+    public void setNetworkId(UUID networkId) { this.networkId = networkId; }
 }
