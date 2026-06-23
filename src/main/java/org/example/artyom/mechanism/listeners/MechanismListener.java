@@ -84,8 +84,7 @@ public class MechanismListener implements Listener {
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
             NetworkRepository.createNetwork(networkManager);
-            networkManager.addElement(mechanism);
-            mechanismType.addNetworkToDB(mechanism);
+            networkManager.addElement(mechanismType, mechanism);
             player.sendMessage("Создаю новую сеть!");
         }
         else {
@@ -146,15 +145,13 @@ public class MechanismListener implements Listener {
             NetworkManager newNetworkManager = networkSystems.addNetworkManager();
             NetworkRepository.createNetwork(newNetworkManager);
             for(INetworkElement element : component) {
-                newNetworkManager.addElement(element);
-                mechanismType.addNetworkToDB(element);
+                newNetworkManager.addElement(mechanismType, element);
             }
         }
 
         //Удаляем старую сеть
         NetworkManager netManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
         mechanismType.removeFromPreviousNetwork(mechanism.getNetworkId());
-        NetworkRepository.deleteNetwork(netManager.getNetworkId().toString());
         networkSystems.removeNetworkManager(netManager);
 
         spawnPlaceEffect(block);

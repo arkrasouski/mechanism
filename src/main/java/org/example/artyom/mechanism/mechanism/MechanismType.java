@@ -3,6 +3,7 @@ package org.example.artyom.mechanism.mechanism;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.database.CableRepository;
 import org.example.artyom.mechanism.database.GeneratorRepository;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.items.CableItem;
@@ -36,16 +37,15 @@ public enum MechanismType  {
     static {
         registry.put(GENERATOR, Generator::new);
         registry.put(CABLE, Cable::new);
-//        registry.put(IRON, loc -> new IronMechanism(loc));
-//        registry.put(GOLD, loc -> new GoldMechanism(loc));
 
         registryItem.put(GENERATOR, GeneratorItem::new);
         registryItem.put(CABLE, CableItem::new);
 
         registryRepository.put(GENERATOR, GeneratorRepository::addGenerator);
-//        registryRepository.put();
+        registryRepository.put(CABLE, CableRepository::addCable);
 
         registryRepositoryRemover.put(GENERATOR, GeneratorRepository::removeGeneratorsByNetwork);
+        registryRepositoryRemover.put(CABLE, CableRepository::removeCablesByNetwork);
     }
 
     private final Material material;

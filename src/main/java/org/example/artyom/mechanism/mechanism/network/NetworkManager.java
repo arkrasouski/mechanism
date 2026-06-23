@@ -1,6 +1,7 @@
 package org.example.artyom.mechanism.mechanism.network;
 
 import org.bukkit.Location;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.utils.BlockUtil;
 
 import java.util.*;
@@ -15,7 +16,7 @@ public class NetworkManager {
     }
 
     /**
-     * Добавить элемент в сеть
+     * Добавить элемент в сеть (без бд)
      */
     public void addElement(INetworkElement newElement) {
         Location loc = newElement.getLocation();
@@ -37,6 +38,14 @@ public class NetworkManager {
         }
 
         newElement.setNetworkId(networkId);
+    }
+
+    /**
+     * Добавить элемент в сеть и бд
+     */
+    public void addElement(MechanismType mechanismType, INetworkElement newElement) {
+        addElement(newElement);
+        mechanismType.addNetworkToDB(newElement);
     }
 
     /**

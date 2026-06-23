@@ -85,7 +85,7 @@ public class GeneratorRepository {
         return generators;
     }
 
-    // Получить все генераторы в сети
+    // удалить генераторы из сети
     public static boolean removeGeneratorsByNetwork(String networkId) {
         List<Generator> generators = new ArrayList<>();
         String sql = "DELETE FROM generators WHERE network_id = ?";

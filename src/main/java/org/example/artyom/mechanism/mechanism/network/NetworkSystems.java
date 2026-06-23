@@ -62,9 +62,10 @@ public class NetworkSystems {
     }
 
     /**
-     * Удалить сеть
+     * Удалить сеть из сетей и бд
      */
     public void removeNetworkManager(NetworkManager networkManager) {
+        NetworkRepository.deleteNetwork(networkManager.getNetworkId().toString());
         networks.remove(networkManager.getNetworkId());
     }
 
@@ -75,10 +76,9 @@ public class NetworkSystems {
                                             MechanismType mechanismType,
                                             Set<NetworkManager> networks,
                                             Player player) {
-        if (networks.size() == 1) {
+        if (networks.size() == 1) { // Добавляем в единственную сеть
             NetworkManager network = networks.iterator().next();
-            network.addElement(newElement);
-            mechanismType.addNetworkToDB(newElement);
+            network.addElement(mechanismType, newElement);
             player.sendMessage("Добавлено в существующую сеть!" + newElement.getNetworkId());
         }
         else if (networks.size() > 1) {
@@ -90,19 +90,16 @@ public class NetworkSystems {
             // Переносим элементы из других сетей
             for (NetworkManager secondaryNetwork : networks) {
                 if (secondaryNetwork != primaryNetwork) {
-                    for (INetworkElement element : secondaryNetwork.getElements()) {
-                        primaryNetwork.addElement(element); // Связи добавляем только новые! старые остаются
-                        mechanismType.addNetworkToDB(element);
+                    for (INetworkElement element : secondaryNetwork.getElements()) { // TODO: ВАЖНО!!! ЕСЛИ Я ДОБАВЛЮ ГЕНЕРАТОР, У МЕНЯ КАБЕЛИ В ТАКОМ СЛУЧАЕ БУДУТ СЧИТАТЬСЯ ЗА ГЕНЕРАТОРЫ ПОТОМУ ЧТО МЕХАНИЗМ ТАЙП КОНКРЕТНО ЗА ОДИН ЭЛЕМЕНТ
+                        primaryNetwork.addElement(mechanismType, element); // Связи добавляем только новые! старые остаются
                     }
                     removeNetworkManager(secondaryNetwork);
                     mechanismType.removeFromPreviousNetwork(secondaryNetwork.getNetworkId());
-                    NetworkRepository.deleteNetwork(secondaryNetwork.getNetworkId().toString());
                 }
             }
 
             // Добавляем новый элемент
-            primaryNetwork.addElement(newElement);
-            mechanismType.addNetworkToDB(newElement);
+            primaryNetwork.addElement(mechanismType, newElement);
 
             player.sendMessage(String.format(
                     "✓ Объединено %d сетей! Всего элементов: %d",

@@ -20,6 +20,7 @@ public final class Mechanism extends JavaPlugin {
 
     private static NetworkSystems networkSystems;
     private static MechanismManager generatorManager;
+    private static MechanismManager cableManager;
 
     @Override
     public void onEnable() {
@@ -38,7 +39,7 @@ public final class Mechanism extends JavaPlugin {
         generatorRepository = new GeneratorRepository(databaseManager);
         //managers
         generatorManager = new MechanismManager(this);
-        MechanismManager cableManager = new MechanismManager(this);
+        cableManager = new MechanismManager(this);
         //network
         networkSystems = new NetworkSystems();
 
@@ -81,4 +82,5 @@ public final class Mechanism extends JavaPlugin {
     //Getters для Менеджеров
     public static MechanismManager getGeneratorManager() { return generatorManager; }
     public static NetworkSystems getNetworkSystems() { return networkSystems; }
+    public static MechanismManager getCableManager() { return cableManager; }
 }
