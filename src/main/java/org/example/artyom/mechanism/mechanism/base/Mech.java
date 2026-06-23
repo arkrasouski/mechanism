@@ -1,6 +1,7 @@
 package org.example.artyom.mechanism.mechanism.base;
 
 import org.bukkit.Location;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.network.NetworkElement;
 
 public abstract class Mech extends NetworkElement implements IMech {
@@ -9,8 +10,8 @@ public abstract class Mech extends NetworkElement implements IMech {
     private final boolean isWorking;
     private final int capacity;
 
-    public Mech(Location location, int currentEnergy, boolean isWorking, int capacity) {
-        super(location);
+    public Mech(Location location, int currentEnergy, boolean isWorking, int capacity, MechanismType mechanismType) {
+        super(location, mechanismType);
         this.currentEnergy = currentEnergy;
         this.isWorking = isWorking;
         this.capacity = capacity;

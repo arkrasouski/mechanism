@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.mechanism.MechanismType;
+import org.example.artyom.mechanism.mechanism.base.Mech;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,12 +74,11 @@ public class NetworkSystems {
      * Объединение множества сетей с добавлением узла
      */
     public void mergeNetworksAndAddElement(INetworkElement newElement,
-                                            MechanismType mechanismType,
                                             Set<NetworkManager> networks,
                                             Player player) {
         if (networks.size() == 1) { // Добавляем в единственную сеть
             NetworkManager network = networks.iterator().next();
-            network.addElement(mechanismType, newElement);
+            network.addElement(newElement.getMechanismType(), newElement);
             player.sendMessage("Добавлено в существующую сеть!" + newElement.getNetworkId());
         }
         else if (networks.size() > 1) {
@@ -90,16 +90,23 @@ public class NetworkSystems {
             // Переносим элементы из других сетей
             for (NetworkManager secondaryNetwork : networks) {
                 if (secondaryNetwork != primaryNetwork) {
-                    for (INetworkElement element : secondaryNetwork.getElements()) { // TODO: ВАЖНО!!! ЕСЛИ Я ДОБАВЛЮ ГЕНЕРАТОР, У МЕНЯ КАБЕЛИ В ТАКОМ СЛУЧАЕ БУДУТ СЧИТАТЬСЯ ЗА ГЕНЕРАТОРЫ ПОТОМУ ЧТО МЕХАНИЗМ ТАЙП КОНКРЕТНО ЗА ОДИН ЭЛЕМЕНТ
-                        primaryNetwork.addElement(mechanismType, element); // Связи добавляем только новые! старые остаются
+                    for (INetworkElement element : secondaryNetwork.getElements()) {
+                        //добавляю новые сети в бд и в память
+                        primaryNetwork.addElement(element.getMechanismType(), element); // Связи добавляем только новые! старые остаются
                     }
+                    //Удаляю сеть в памяти
                     removeNetworkManager(secondaryNetwork);
-                    mechanismType.removeFromPreviousNetwork(secondaryNetwork.getNetworkId());
+                    //Удаляю из бд все механизмы старой сети
+                    for(MechanismType mechanismType : MechanismType.values()) {
+                        mechanismType.removeFromPreviousNetwork(secondaryNetwork.getNetworkId());
+                    }
+                    //Удаляю сеть из бд
+                    NetworkRepository.deleteNetwork(secondaryNetwork.getNetworkId().toString());
                 }
             }
 
             // Добавляем новый элемент
-            primaryNetwork.addElement(mechanismType, newElement);
+            primaryNetwork.addElement(newElement.getMechanismType(), newElement);
 
             player.sendMessage(String.format(
                     "✓ Объединено %d сетей! Всего элементов: %d",

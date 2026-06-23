@@ -50,6 +50,8 @@ public class DatabaseManager {
                 is_working BOOLEAN DEFAULT TRUE,
                 current_energy INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                chunk_x INTEGER,
+                chunk_z INTEGER,
                 FOREIGN KEY (network_id) REFERENCES networks(network_id)
             );
         """;
@@ -65,6 +67,8 @@ public class DatabaseManager {
 //                consumer_type TEXT NOT NULL,
 //                energy_consumption REAL DEFAULT 0,
 //                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//                chunk_x INTEGER,
+//                chunk_z INTEGER,
 //                FOREIGN KEY (network_id) REFERENCES networks(network_id)
 //            );
 //        """;
@@ -78,6 +82,8 @@ public class DatabaseManager {
                 y INTEGER NOT NULL,
                 z INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                chunk_x INTEGER,
+                chunk_z INTEGER,
                 FOREIGN KEY (network_id) REFERENCES networks(network_id)
             );
         """;

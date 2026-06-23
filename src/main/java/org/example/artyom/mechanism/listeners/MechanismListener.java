@@ -84,13 +84,13 @@ public class MechanismListener implements Listener {
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
             NetworkRepository.createNetwork(networkManager);
+            //Если элемент один, создаем ему сеть и в бд его
             networkManager.addElement(mechanismType, mechanism);
             player.sendMessage("Создаю новую сеть!");
         }
         else {
             networkSystems.mergeNetworksAndAddElement(
                     mechanism,
-                    mechanismType,
                     connectedNetworks,
                     player
             );
@@ -145,17 +145,19 @@ public class MechanismListener implements Listener {
             NetworkManager newNetworkManager = networkSystems.addNetworkManager();
             NetworkRepository.createNetwork(newNetworkManager);
             for(INetworkElement element : component) {
-                newNetworkManager.addElement(mechanismType, element);
+                newNetworkManager.addElement(element.getMechanismType(), element);
             }
         }
 
-        //Удаляем старую сеть
+        //Удаляем старую сеть и все типы механизмов из нее
         NetworkManager netManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
-        mechanismType.removeFromPreviousNetwork(mechanism.getNetworkId());
+        for (MechanismType mechanismType : MechanismType.values()) {
+            mechanismType.removeFromPreviousNetwork(mechanism.getNetworkId());
+        }
         networkSystems.removeNetworkManager(netManager);
 
         spawnPlaceEffect(block);
-        event.getPlayer().sendMessage("§c " + mechanismType.getDisplayName() + " разрушен!");
+        player.sendMessage("§c " + mechanismType.getDisplayName() + " разрушен!");
 
         // Отменяем обычный дроп
         event.setDropItems(false);

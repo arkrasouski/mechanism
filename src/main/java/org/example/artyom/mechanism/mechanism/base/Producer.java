@@ -1,6 +1,8 @@
 package org.example.artyom.mechanism.mechanism.base;
 
 import org.bukkit.Location;
+import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 
 public abstract class Producer extends Mech implements IProducer {
 
@@ -13,9 +15,10 @@ public abstract class Producer extends Mech implements IProducer {
                     int capacity,
                     int energyTransferPerTick,
                     int generationPerTick,
-                    int consumeFuelPerTick
+                    int consumeFuelPerTick,
+                    MechanismType mechanismType
     ) {
-        super(location, 0, true, capacity);
+        super(location, 0, true, capacity, mechanismType);
         energy_transfer_per_tick = energyTransferPerTick;
         generation_per_tick = generationPerTick;
         consume_fuel_per_tick = consumeFuelPerTick;
@@ -27,9 +30,10 @@ public abstract class Producer extends Mech implements IProducer {
                     int capacity,
                     int energyTransferPerTick,
                     int generationPerTick,
-                    int consumeFuelPerTick
+                    int consumeFuelPerTick,
+                    MechanismType mechanismType
     ) {
-        super(location, currentEnergy, isWorking, capacity);
+        super(location, currentEnergy, isWorking, capacity, mechanismType);
         energy_transfer_per_tick = energyTransferPerTick;
         generation_per_tick = generationPerTick;
         consume_fuel_per_tick = consumeFuelPerTick;

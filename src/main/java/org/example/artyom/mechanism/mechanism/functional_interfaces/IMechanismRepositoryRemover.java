@@ -1,6 +1,4 @@
-package org.example.artyom.mechanism.mechanism;
-
-import java.util.UUID;
+package org.example.artyom.mechanism.mechanism.functional_interfaces;
 
 @FunctionalInterface
 public interface IMechanismRepositoryRemover {

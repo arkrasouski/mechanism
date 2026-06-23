@@ -49,8 +49,8 @@ public class CableRepository {
     }
 
     // Получить все кабели в сети
-    public static List<Cable> getCablesByNetwork(String networkId) {
-        List<Cable> cables = new ArrayList<>();
+    public static List<INetworkElement> getCablesByNetwork(String networkId) {
+        List<INetworkElement> cables = new ArrayList<>();
         String sql = "SELECT * FROM cables WHERE network_id = ?";
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
@@ -93,27 +93,27 @@ public class CableRepository {
     /**
      * Восстановить все генераторы из бд
      */
-    public static void restoreAllCables() {
-        LogUtil.info("Starting to restore all cables from database...");
-
-        // Получить все сети
-        List<NetworkManager> allNetworks = NetworkRepository.getAllNetworks();
-
-        int restoredCount = 0;
-
-        for (NetworkManager network : allNetworks) {
-            UUID networkId = network.getNetworkId();
-
-            // Получить все генераторы в этой сети
-            List<Cable> cables = getCablesByNetwork(networkId.toString());
-
-            for (Cable cable : cables) {
-                restoredCount++;
-                network.addElement(cable);
-                Mechanism.getCableManager().registerMechanism(cable,cable.getLocation());
-            }
-        }
-
-        LogUtil.info("Restored " + restoredCount + " cables from database");
-    }
+//    public static void restoreAllCables() {
+//        LogUtil.info("Starting to restore all cables from database...");
+//
+//        // Получить все сети
+//        List<NetworkManager> allNetworks = NetworkRepository.getAllNetworks();
+//
+//        int restoredCount = 0;
+//
+//        for (NetworkManager network : allNetworks) {
+//            UUID networkId = network.getNetworkId();
+//
+//            // Получить все генераторы в этой сети
+//            List<Cable> cables = getCablesByNetwork(networkId.toString());
+//
+//            for (Cable cable : cables) {
+//                restoredCount++;
+//                network.addElement(cable);
+//                Mechanism.getCableManager().registerMechanism(cable,cable.getLocation());
+//            }
+//        }
+//
+//        LogUtil.info("Restored " + restoredCount + " cables from database");
+//    }
 }

@@ -57,8 +57,8 @@ public class GeneratorRepository {
     }
 
     // Получить все генераторы в сети
-    public static List<Generator> getGeneratorsByNetwork(String networkId) {
-        List<Generator> generators = new ArrayList<>();
+    public static List<INetworkElement> getGeneratorsByNetwork(String networkId) {
+        List<INetworkElement> generators = new ArrayList<>();
         String sql = "SELECT * FROM generators WHERE network_id = ?";
 
         try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
@@ -102,27 +102,27 @@ public class GeneratorRepository {
     /**
      * Восстановить все генераторы из бд
      */
-    public static void restoreAllGenerators() {
-        LogUtil.info("Starting to restore all generators from database...");
-
-        // Получить все сети
-        List<NetworkManager> allNetworks = NetworkRepository.getAllNetworks();
-
-        int restoredCount = 0;
-
-        for (NetworkManager network : allNetworks) {
-            UUID networkId = network.getNetworkId();
-
-            // Получить все генераторы в этой сети
-            List<Generator> generators = getGeneratorsByNetwork(networkId.toString());
-
-            for (Generator generator : generators) {
-                restoredCount++;
-                network.addElement(generator);
-                Mechanism.getGeneratorManager().registerMechanism(generator, generator.getLocation());
-            }
-        }
-
-        LogUtil.info("Restored " + restoredCount + " generators from database");
-    }
+//    public static void restoreAllGenerators() {
+//        LogUtil.info("Starting to restore all generators from database...");
+//
+//        // Получить все сети
+//        List<NetworkManager> allNetworks = NetworkRepository.getAllNetworks();
+//
+//        int restoredCount = 0;
+//
+//        for (NetworkManager network : allNetworks) {
+//            UUID networkId = network.getNetworkId();
+//
+//            // Получить все генераторы в этой сети
+//            List<Generator> generators = getGeneratorsByNetwork(networkId.toString());
+//
+//            for (Generator generator : generators) {
+//                restoredCount++;
+//                network.addElement(generator);
+//                Mechanism.getGeneratorManager().registerMechanism(generator, generator.getLocation());
+//            }
+//        }
+//
+//        LogUtil.info("Restored " + restoredCount + " generators from database");
+//    }
 }

@@ -1,6 +1,7 @@
 package org.example.artyom.mechanism.mechanism.network;
 
 import org.bukkit.Location;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -8,6 +9,8 @@ import java.util.UUID;
 
 public abstract class NetworkElement implements INetworkElement {
 
+    //Тип механизма
+    MechanismType mechanismType;
     //Местоположение
     private final Location location;
     //Сеть
@@ -15,8 +18,9 @@ public abstract class NetworkElement implements INetworkElement {
     //Сетевые соединения
     private final Set<INetworkElement> connections = new HashSet<>();
 
-    public NetworkElement(Location location) {
+    public NetworkElement(Location location, MechanismType mechanismType) {
         this.location = location;
+        this.mechanismType = mechanismType;
     }
 
     @Override
@@ -44,4 +48,7 @@ public abstract class NetworkElement implements INetworkElement {
 
     @Override
     public void setNetworkId(UUID networkId) { this.networkId = networkId; }
+
+    @Override
+    public MechanismType getMechanismType() { return mechanismType; }
 }

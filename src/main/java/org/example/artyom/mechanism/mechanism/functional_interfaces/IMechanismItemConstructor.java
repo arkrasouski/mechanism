@@ -1,10 +1,10 @@
-package org.example.artyom.mechanism.mechanism;
+package org.example.artyom.mechanism.mechanism.functional_interfaces;
 
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.items.BaseItem;
 
 // Нужен для фабрики создания механизмов через mechanismType
 @FunctionalInterface
-interface IMechanismItemConstructor {
+public interface IMechanismItemConstructor {
     BaseItem create(Mechanism plugin);
 }
