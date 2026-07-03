@@ -23,7 +23,7 @@ import java.util.UUID;
 import static org.bukkit.Bukkit.getServer;
 
 public class GeneratorRepository {
-    private static DatabaseManager db = null;
+    static DatabaseManager db = null;
 
     public GeneratorRepository(DatabaseManager db) {
         GeneratorRepository.db = db;

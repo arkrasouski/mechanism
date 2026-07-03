@@ -40,13 +40,7 @@ public class NetworkManager {
         newElement.setNetworkId(networkId);
     }
 
-    /**
-     * Добавить элемент в сеть и бд
-     */
-    public void addElement(MechanismType mechanismType, INetworkElement newElement) {
-        addElement(newElement);
-        mechanismType.addNetworkToDB(newElement);
-    }
+
 
     /**
      * Удалить элемент из сети

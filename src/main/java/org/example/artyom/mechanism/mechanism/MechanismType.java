@@ -48,15 +48,15 @@ public enum MechanismType  {
         registryItem.put(GENERATOR, GeneratorItem::new);
         registryItem.put(CABLE, CableItem::new);
 
-        registryRepository.put(GENERATOR, GeneratorRepository::addGenerator);
-        registryRepository.put(CABLE, CableRepository::addCable);
-
-        registryRepositoryRemover.put(GENERATOR, GeneratorRepository::removeGeneratorsByNetwork);
-        registryRepositoryRemover.put(CABLE, CableRepository::removeCablesByNetwork);
-
-        registryRepositoryMerge.put(GENERATOR, GeneratorRepository::getGeneratorsByNetwork);
-        registryRepositoryMerge.put(CABLE, CableRepository::getCablesByNetwork);
-
+//        registryRepository.put(GENERATOR, GeneratorRepository::addGenerator);
+//        registryRepository.put(CABLE, CableRepository::addCable);
+//
+//        registryRepositoryRemover.put(GENERATOR, GeneratorRepository::removeGeneratorsByNetwork);
+//        registryRepositoryRemover.put(CABLE, CableRepository::removeCablesByNetwork);
+//
+//        registryRepositoryMerge.put(GENERATOR, GeneratorRepository::getGeneratorsByNetwork);
+//        registryRepositoryMerge.put(CABLE, CableRepository::getCablesByNetwork);
+//
         registryMechanismManager.put(GENERATOR, Mechanism::getGeneratorManager);
         registryMechanismManager.put(CABLE, Mechanism::getCableManager);
 
@@ -97,21 +97,21 @@ public enum MechanismType  {
     /**
      * Добавляет в бд нужный механизм
      */
-    public boolean addNetworkToDB(INetworkElement mechanism) {return registryRepository.get(this).add(mechanism);}
-
-    /**
-     * Удаляет все механизмы из сети, которая передается, в бд
-     */
-    public boolean removeFromPreviousNetwork(UUID networkId) {
-        return registryRepositoryRemover.get(this).remove(networkId.toString());
-    }
-
-    /**
-     * Получить все элементы типа механизма по id сети
-     */
-    public List<INetworkElement> getByNetwork(UUID networkId) {
-        return  registryRepositoryMerge.get(this).get(networkId.toString());
-    }
+//    public boolean addNetworkToDB(INetworkElement mechanism) {return registryRepository.get(this).add(mechanism);}
+//
+//    /**
+//     * Удаляет все механизмы из сети, которая передается, в бд
+//     */
+//    public boolean removeFromPreviousNetwork(UUID networkId) {
+//        return registryRepositoryRemover.get(this).remove(networkId.toString());
+//    }
+//
+//    /**
+//     * Получить все элементы типа механизма по id сети
+//     */
+//    public List<INetworkElement> getByNetwork(UUID networkId) {
+//        return  registryRepositoryMerge.get(this).get(networkId.toString());
+//    }
 
     /**
      * Получить менджер соответствующего механизма

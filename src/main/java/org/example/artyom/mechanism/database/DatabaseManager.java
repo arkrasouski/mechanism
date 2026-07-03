@@ -39,14 +39,15 @@ public class DatabaseManager {
             );
         """;
 
-        String createGeneratorsTable = """
-            CREATE TABLE IF NOT EXISTS generators (
+        String createMechanismTable = """
+            CREATE TABLE IF NOT EXISTS mechanism (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 network_id TEXT NOT NULL,
                 world_name TEXT NOT NULL,
                 x INTEGER NOT NULL,
                 y INTEGER NOT NULL,
                 z INTEGER NOT NULL,
+                type INTEGER NOT NULL,
                 is_working BOOLEAN DEFAULT TRUE,
                 current_energy INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -73,31 +74,28 @@ public class DatabaseManager {
 //            );
 //        """;
 
-        String createCablesTable = """
-            CREATE TABLE IF NOT EXISTS cables (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                network_id TEXT NOT NULL,
-                world_name TEXT NOT NULL,
-                x INTEGER NOT NULL,
-                y INTEGER NOT NULL,
-                z INTEGER NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                chunk_x INTEGER,
-                chunk_z INTEGER,
-                FOREIGN KEY (network_id) REFERENCES networks(network_id)
-            );
-        """;
+//        String createCablesTable = """
+//            CREATE TABLE IF NOT EXISTS cables (
+//                id INTEGER PRIMARY KEY AUTOINCREMENT,
+//                network_id TEXT NOT NULL,
+//                world_name TEXT NOT NULL,
+//                x INTEGER NOT NULL,
+//                y INTEGER NOT NULL,
+//                z INTEGER NOT NULL,
+//                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//                chunk_x INTEGER,
+//                chunk_z INTEGER,
+//                FOREIGN KEY (network_id) REFERENCES networks(network_id)
+//            );
+//        """;
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createNetworksTable);
-            stmt.execute(createGeneratorsTable);
-            //stmt.execute(createConsumersTable);
-            stmt.execute(createCablesTable);
+            stmt.execute(createMechanismTable);
 
             // Создание индексов
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_generators_network ON generators(network_id)");
-            //stmt.execute("CREATE INDEX IF NOT EXISTS idx_consumers_network ON consumers(network_id)");
-            stmt.execute("CREATE INDEX IF NOT EXISTS idx_cables_network ON cables(network_id)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_mechanism_network ON mechanism(network_id)");
+
         } catch (SQLException e) {
             LogUtil.error("Failed to create tables: ", e);
         }

@@ -3,14 +3,14 @@ package org.example.artyom.mechanism.database;
 
 
 import com.google.common.graph.Network;
+import org.apache.commons.logging.Log;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
+import org.example.artyom.mechanism.utils.LogUtil;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -110,5 +110,67 @@ public class NetworkRepository {
         }
 
         return networks;
+    }
+
+    /**
+     * Удаляет старые сети
+     */
+    private static void deleteSecondaryNetworks(
+            Connection connection,
+            List<UUID> secondaryNetworkIds
+    ) throws SQLException {
+
+                LogUtil.warn("Перед плейсхолдером");
+                LogUtil.warn("" + secondaryNetworkIds.size());
+                String placeholders = secondaryNetworkIds.stream()
+                        .map(id -> "?")
+                        .collect(java.util.stream.Collectors.joining(", ", "(", ")"));
+
+                String sql = "DELETE FROM networks WHERE network_id IN %s".formatted(placeholders);
+                LogUtil.warn(sql);
+                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                    int index = 1;
+                    for (UUID id : secondaryNetworkIds) {
+                        ps.setString(index++, id.toString());
+                    }
+                    int updated = ps.executeUpdate();
+                    connection.commit();
+                    LogUtil.warn("Deleted rows: " + updated);
+                }
+
+            catch (SQLException e){
+                connection.rollback();
+                throw e;
+            }
+
+
+    }
+
+    /**
+     * Функция обновления элементов сетей при склейке и удалении старых сетей
+     */
+    public static void mergeNetworks(
+            UUID primaryNetworkId,
+            List<UUID> secondaryNetworkIds,
+            INetworkElement newElement
+    ) throws SQLException {
+        try (Connection connection = db.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                MechanismRepository.addMechanism(connection, newElement);
+
+                LogUtil.warn("Здесь был");
+                MechanismRepository.batchUpdateMechanismNetworks(connection, primaryNetworkId, secondaryNetworkIds);
+                LogUtil.warn("Перехожу к delete");
+
+                deleteSecondaryNetworks(connection, secondaryNetworkIds);
+
+                connection.commit();
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            }
+        }
     }
 }
