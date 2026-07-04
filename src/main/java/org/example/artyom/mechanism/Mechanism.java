@@ -46,15 +46,15 @@ public final class Mechanism extends JavaPlugin {
         }
 
         transactionManager = new TransactionManager(pool);
-        mechanismRepository = new MechanismRepository(pool);
-        networkRepository = new NetworkRepository(pool, mechanismRepository);
+        mechanismRepository = new MechanismRepository();
+        networkRepository = new NetworkRepository();
 
 
         //managers
         generatorManager = new MechanismManager(this);
         cableManager = new MechanismManager(this);
         //network
-        networkSystems = new NetworkSystems(networkRepository);
+        networkSystems = new NetworkSystems();
 
         //commands
         getCommand("getgen").setExecutor(new MechanismCommands(this));

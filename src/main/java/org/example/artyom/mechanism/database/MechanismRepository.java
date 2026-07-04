@@ -13,11 +13,6 @@ import java.util.*;
 import static org.bukkit.Bukkit.getServer;
 
 public class MechanismRepository {
-    private final DatabaseConnectionPool pool;
-
-    public MechanismRepository(DatabaseConnectionPool pool) {
-        this.pool = pool;
-    }
 
     /**
      * Добавить механизм в бд
@@ -128,7 +123,6 @@ public class MechanismRepository {
                 DELETE FROM mechanism
         WHERE world_name = ? AND x = ? AND y = ? AND z = ?
         """;
-        LogUtil.warn(sql);
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, loc.getWorld().getName());
             ps.setInt(2, loc.getBlockX());
