@@ -13,8 +13,10 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.database.DatabaseConnectionPool;
 import org.example.artyom.mechanism.database.MechanismRepository;
 import org.example.artyom.mechanism.database.NetworkRepository;
+import org.example.artyom.mechanism.database.TransactionManager;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -23,24 +25,35 @@ import org.example.artyom.mechanism.mechanism.base.IProducer;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.utils.BlockUtil;
-import org.example.artyom.mechanism.utils.ToolUtil;
+import org.example.artyom.mechanism.utils.LogUtil;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.sql.Connection;
+
+import java.sql.SQLException;
+import java.util.*;
 
 public class MechanismListener implements Listener {
     private final Mechanism plugin;
     private final MechanismManager manager;
     private final NetworkSystems networkSystems;
     private final MechanismType mechanismType;
+    private final TransactionManager transactionManager;
     private final NetworkRepository networkRepository;
     private final MechanismRepository mechanismRepository;
 
-    public MechanismListener(Mechanism plugin, MechanismManager manager, NetworkSystems networkSystems, MechanismType mechanismType, NetworkRepository networkRepository, MechanismRepository mechanismRepository) {
+    public MechanismListener(Mechanism plugin,
+                             MechanismManager manager,
+                             NetworkSystems networkSystems,
+                             MechanismType mechanismType,
+                             TransactionManager transactionManager,
+                             NetworkRepository networkRepository,
+                             MechanismRepository mechanismRepository
+    ) {
         this.plugin = plugin;
         this.manager = manager;
         this.networkSystems = networkSystems;
         this.mechanismType = mechanismType;
+        this.transactionManager = transactionManager;
         this.networkRepository = networkRepository;
         this.mechanismRepository = mechanismRepository;
     }
@@ -64,14 +77,13 @@ public class MechanismListener implements Listener {
         }
 
         INetworkElement mechanism = mechanismType.create(loc);
-        manager.registerMechanism(mechanism, loc);
 
         if (mechanism == null) {
             event.setCancelled(true);
             player.sendMessage("§cОшибка при создании " + mechanismType.getDisplayName());
             return;
         }
-        //NetworkElement networkGen = new NetworkElement(loc);
+
         Set<INetworkElement> neighbors = new HashSet<>();
         Set<NetworkManager> connectedNetworks = new HashSet<>();
         // 6 сторон куба
@@ -86,26 +98,59 @@ public class MechanismListener implements Listener {
                 }
             }
         }
-        if(neighbors.isEmpty()) {
-            NetworkManager networkManager =  networkSystems.addNetworkManager();
-            networkRepository.createNetwork(networkManager);
-            //Если элемент один, создаем ему сеть и в бд его
-            networkManager.addElement(mechanism);
-            mechanismRepository.addMechanism(null, mechanism);
-            player.sendMessage("Создаю новую сеть!");
-        }
-        else {
-            networkSystems.mergeNetworksAndAddElement(
-                    mechanism,
-                    connectedNetworks,
-                    player
-            );
-        }
-        // ШАГ 5: Сообщение игроку
-        player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
+        try {
+            if(connectedNetworks.isEmpty()) {
+                NetworkManager networkManager =  networkSystems.createDetachedNetwork(mechanism.getLocation());
+                mechanism.setNetworkId(networkManager.getNetworkId());
+                transactionManager.execute(connection -> {
+                    networkRepository.createNetwork(connection, networkManager);
+                    mechanismRepository.addMechanism(connection, mechanism);
+                    return true;
+                });
+                networkManager.addElement(mechanism);
+                networkSystems.addNetworkManager(networkManager);
+                manager.registerMechanism(mechanism, loc);
+                player.sendMessage("Создаю новую сеть!");
+            }
+            else {
 
-        // ШАГ 6: Визуальный эффект
-        spawnPlaceEffect(block);
+                NetworkManager primaryNetwork = connectedNetworks.stream()
+                        .max(Comparator.comparingInt(n -> n.getElements().size()))
+                        .orElseThrow();
+
+                List<NetworkManager> secondaryNetworks = connectedNetworks.stream()
+                        .filter(n -> n != primaryNetwork)
+                        .toList();
+                UUID primaryId = primaryNetwork.getNetworkId();
+                List<UUID> secondaryIds = secondaryNetworks.stream().map(NetworkManager::getNetworkId).toList();
+                mechanism.setNetworkId(primaryId);
+                transactionManager.execute(connection -> {
+                    mechanismRepository.addMechanism(connection, mechanism);
+                    mechanismRepository.batchUpdateMechanismNetworks(connection, primaryId, secondaryIds);
+                    networkRepository.deleteSecondaryNetworks(connection, secondaryIds);
+                    return true;
+                });
+                primaryNetwork.addElement(mechanism);
+
+                for (NetworkManager secondary : secondaryNetworks) {
+                    for (INetworkElement element : secondary.getElements()) {
+                        element.setNetworkId(primaryId);
+                        primaryNetwork.addElement(element);
+                    }
+                }
+                manager.registerMechanism(mechanism, loc);
+                player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
+            }
+            // ШАГ 5: Сообщение игроку
+            player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
+
+            // ШАГ 6: Визуальный эффект
+            spawnPlaceEffect(block);
+        } catch (SQLException e) {
+            event.setCancelled(true);
+            player.sendMessage("§cОшибка при сохранении механизма");
+            e.printStackTrace();
+        }
     }
 
     /**

@@ -47,11 +47,9 @@ public class NetworkSystems {
     /**
      * Добавить новую сеть
      */
-    public NetworkManager addNetworkManager() {
+    public NetworkManager createDetachedNetwork(Location mechanismLoc) {
         UUID networkId = UUID.randomUUID();
-        NetworkManager networkManager = new NetworkManager(networkId);
-        networks.put(networkId, networkManager);
-        return networkManager;
+        return new NetworkManager(networkId, mechanismLoc.getWorld());
     }
 
     /**

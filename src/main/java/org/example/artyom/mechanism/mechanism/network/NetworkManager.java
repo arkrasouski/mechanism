@@ -1,6 +1,7 @@
 package org.example.artyom.mechanism.mechanism.network;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.utils.BlockUtil;
 
@@ -9,10 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class NetworkManager {
     private final UUID networkId;
+    private final World world;
     private final Map<Location, INetworkElement> elements = new ConcurrentHashMap<>();
 
-    public NetworkManager(UUID networkId) {
+    public NetworkManager(UUID networkId, World world) {
         this.networkId = networkId;
+        this.world = world;
     }
 
     /**
@@ -37,7 +40,7 @@ public class NetworkManager {
             neighbor.addConnection(newElement);
         }
 
-        newElement.setNetworkId(networkId);
+
     }
 
 
@@ -75,6 +78,11 @@ public class NetworkManager {
     public UUID getNetworkId() {
         return networkId;
     }
+
+    /**
+     * Получить мир
+     */
+    public World getWorld() {return world;}
 
     /**
      * Найти всех соседей элемента в текущей сети

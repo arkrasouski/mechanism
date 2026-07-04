@@ -17,6 +17,7 @@ public final class Mechanism extends JavaPlugin {
 
     //private DatabaseManager databaseManager;
     private DatabaseConnectionPool pool;
+    private TransactionManager transactionManager;
     private NetworkRepository networkRepository;
     private MechanismRepository mechanismRepository;
 
@@ -44,7 +45,7 @@ public final class Mechanism extends JavaPlugin {
             System.err.println("Error initializing connection pool: " + e.getMessage());
         }
 
-
+        transactionManager = new TransactionManager(pool);
         mechanismRepository = new MechanismRepository(pool);
         networkRepository = new NetworkRepository(pool, mechanismRepository);
 
@@ -67,6 +68,7 @@ public final class Mechanism extends JavaPlugin {
                         cableManager,
                         networkSystems,
                         MechanismType.CABLE,
+                        transactionManager,
                         networkRepository,
                         mechanismRepository
                 ), this);
@@ -75,6 +77,7 @@ public final class Mechanism extends JavaPlugin {
                         generatorManager,
                         networkSystems,
                         MechanismType.GENERATOR,
+                        transactionManager,
                         networkRepository,
                         mechanismRepository
                                         ),this);

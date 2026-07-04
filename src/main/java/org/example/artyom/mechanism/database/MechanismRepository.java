@@ -21,7 +21,7 @@ public class MechanismRepository {
     /**
      * Добавить механизм в бд
      */
-    public boolean addMechanism(Connection connection, INetworkElement networkElement) {
+    public boolean addMechanism(Connection connection, INetworkElement networkElement) throws SQLException {
         int type = networkElement.getMechanismType().ordinal();
         String network_id = networkElement.getNetworkId().toString();
         String world_name = networkElement.getLocation().getWorld().getName();
@@ -31,8 +31,7 @@ public class MechanismRepository {
         boolean is_working;
         int current_energy;
 
-        if (networkElement instanceof Mech) {
-            Mech mechanism = (Mech) networkElement;
+        if (networkElement instanceof Mech mechanism) {
             is_working = mechanism.isWorking();
             current_energy = mechanism.getCurrentEnergy();
         } else {
@@ -47,19 +46,6 @@ public class MechanismRepository {
         (network_id, world_name, x, y, z, type, is_working, current_energy) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """;
-        boolean is_not_connection = connection == null;
-        if (is_not_connection) {
-            try {
-
-                connection = pool.getConnection();
-                LogUtil.warn(connection.isClosed() + "=closed");
-                connection.setAutoCommit(true);
-
-            }
-            catch (SQLException e) {
-                LogUtil.error("Ошибка добавления механизма в бд!", e);
-            }
-        }
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, network_id);
@@ -72,55 +58,36 @@ public class MechanismRepository {
             stmt.setDouble(8, current_energy);
 
             return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        } finally {
-            try {
-                if (is_not_connection && connection != null) connection.close(); // Возвращаем соединение в пул!
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
     }
 
     /**
      * Обновить сеть всех механизмов из старых сетей
      */
-    public void batchUpdateMechanismNetworks(
+    public boolean batchUpdateMechanismNetworks(
             Connection connection,
             UUID primaryNetworkId,
             List<UUID> secondaryNetworkIds
     ) throws SQLException {
 
+            String placeholders = secondaryNetworkIds.stream()
+                    .map(id -> "?")
+                    .collect(java.util.stream.Collectors.joining(", ", "(", ")"));
 
-                LogUtil.warn("И здесь был!");
+            String sql = "UPDATE mechanism SET network_id = ? WHERE network_id IN %s".formatted(placeholders);
 
-                String placeholders = secondaryNetworkIds.stream()
-                        .map(id -> "?")
-                        .collect(java.util.stream.Collectors.joining(", ", "(", ")"));
-
-                String sql = "UPDATE mechanism SET network_id = ? WHERE network_id IN %s".formatted(placeholders);
-                LogUtil.warn(sql);
-                LogUtil.warn("connection = " + connection);
-                LogUtil.warn("closed = " + connection.isClosed());
-                LogUtil.warn(secondaryNetworkIds.size() + "");
-                try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                    ps.setString(1, primaryNetworkId.toString());
-                    int index = 2;
-                    for (UUID id : secondaryNetworkIds) {
-                        ps.setString(index++, id.toString());
-                    }
-                    LogUtil.warn("in update");
-                    int updated = ps.executeUpdate();
-                    LogUtil.warn("Updated rows: " + updated);
-
-                } catch (SQLException e) {
-                    connection.rollback();
-                    throw e;
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                ps.setString(1, primaryNetworkId.toString());
+                int index = 2;
+                for (UUID id : secondaryNetworkIds) {
+                    ps.setString(index++, id.toString());
                 }
+                int updated = ps.executeUpdate();
+                LogUtil.warn("Updated rows: " + updated);
+                return updated > 0;
+            }
 
-        }
+    }
 
 //    // Получить все генераторы в сети
 //    public static List<INetworkElement> getGeneratorsByNetwork(String networkId) {

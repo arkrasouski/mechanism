@@ -4,7 +4,9 @@ package org.example.artyom.mechanism.database;
 
 import com.google.common.graph.Network;
 import org.apache.commons.logging.Log;
+import org.bukkit.Bukkit;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
@@ -25,20 +27,18 @@ public class NetworkRepository {
     }
 
     // Создать новую сеть
-    public boolean createNetwork(NetworkManager network) {
+    public boolean createNetwork(Connection connection, NetworkManager network) throws SQLException{
         String sql = "INSERT INTO networks (network_id, world_name) VALUES (?, ?)";
 
-        LogUtil.warn(sql);
-        pool.printPoolStats();
-        try (Connection conn = pool.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql))
+        try (PreparedStatement stmt = connection.prepareStatement(sql))
         {
+            LogUtil.warn("Пусто" + network.getNetworkId().toString());
             stmt.setString(1, network.getNetworkId().toString());
-            stmt.setString(2, "Earth");//network.getWorldName());
+            stmt.setString(2, network.getWorld().getName());//network.getWorldName());
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            throw e;
         }
     }
 
@@ -51,7 +51,7 @@ public class NetworkRepository {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return new NetworkManager(UUID.fromString(rs.getString("network_id")));
+                return new NetworkManager(UUID.fromString(rs.getString("network_id")), Bukkit.getServer().getWorld(rs.getString("world_name")));
                 // Нужно добавить конструктор с всеми полями
             }
         } catch (SQLException e) {
@@ -70,7 +70,7 @@ public class NetworkRepository {
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                NetworkManager network = new NetworkManager(UUID.fromString(rs.getString("world_name")));
+                NetworkManager network = new NetworkManager(UUID.fromString(rs.getString("network_id")), Bukkit.getServer().getWorld(rs.getString("world_name")));
                 networks.add(network);
             }
         } catch (SQLException e) {
@@ -106,7 +106,8 @@ public class NetworkRepository {
 
             while (rs.next()) {
                 NetworkManager network = new NetworkManager(
-                        UUID.fromString(rs.getString("network_id"))
+                        UUID.fromString(rs.getString("network_id")),
+                        Bukkit.getServer().getWorld(rs.getString("world_name"))
                 );
                 Mechanism.getNetworkSystems().addNetworkManager(network);
                 networks.add(network);
@@ -121,35 +122,25 @@ public class NetworkRepository {
     /**
      * Удаляет старые сети
      */
-    private void deleteSecondaryNetworks(
+    public boolean deleteSecondaryNetworks(
             Connection connection,
             List<UUID> secondaryNetworkIds
     ) throws SQLException {
 
-                LogUtil.warn("Перед плейсхолдером");
-                LogUtil.warn("" + secondaryNetworkIds.size());
                 String placeholders = secondaryNetworkIds.stream()
                         .map(id -> "?")
                         .collect(java.util.stream.Collectors.joining(", ", "(", ")"));
 
                 String sql = "DELETE FROM networks WHERE network_id IN %s".formatted(placeholders);
-                LogUtil.warn(sql);
                 try (PreparedStatement ps = connection.prepareStatement(sql)) {
                     int index = 1;
                     for (UUID id : secondaryNetworkIds) {
                         ps.setString(index++, id.toString());
                     }
                     int updated = ps.executeUpdate();
-                    connection.commit();
                     LogUtil.warn("Deleted rows: " + updated);
+                    return updated > 0;
                 }
-
-            catch (SQLException e){
-                connection.rollback();
-                throw e;
-            }
-
-
     }
 
     /**
@@ -166,7 +157,7 @@ public class NetworkRepository {
             try {
                 mechanismRepository.addMechanism(connection, newElement);
 
-                LogUtil.warn("Здесь был");
+
                 mechanismRepository.batchUpdateMechanismNetworks(connection, primaryNetworkId, secondaryNetworkIds);
                 LogUtil.warn("Перехожу к delete");
 
