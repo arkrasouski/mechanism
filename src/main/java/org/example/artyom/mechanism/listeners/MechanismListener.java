@@ -26,6 +26,7 @@ import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.utils.BlockUtil;
 import org.example.artyom.mechanism.utils.LogUtil;
+import org.example.artyom.mechanism.utils.ToolUtil;
 
 import java.sql.Connection;
 
@@ -94,6 +95,7 @@ public class MechanismListener implements Listener {
                 INetworkElement elem = netManager.getElement(side);
                 if (elem != null) {
                     neighbors.add(elem);
+                    player.sendMessage("сеть" + netManager.getNetworkId());
                     connectedNetworks.add(netManager);
                 }
             }
@@ -113,7 +115,9 @@ public class MechanismListener implements Listener {
                 player.sendMessage("Создаю новую сеть!");
             }
             else {
-
+                if (connectedNetworks.size() == 1) {
+                    player.sendMessage("В сеть одну!!!");
+                }
                 NetworkManager primaryNetwork = connectedNetworks.stream()
                         .max(Comparator.comparingInt(n -> n.getElements().size()))
                         .orElseThrow();
@@ -137,7 +141,9 @@ public class MechanismListener implements Listener {
                         element.setNetworkId(primaryId);
                         primaryNetwork.addElement(element);
                     }
+                    networkSystems.removeNetworkManager(secondary);
                 }
+
                 manager.registerMechanism(mechanism, loc);
                 player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
             }
@@ -156,25 +162,107 @@ public class MechanismListener implements Listener {
     /**
      * Ломаем генератор
      */
-//    @EventHandler
-//    public void onMechanismBreak(BlockBreakEvent event) {
-//        Block block = event.getBlock();
-//        Player player = event.getPlayer();
-//        Location loc = block.getLocation();
-//
-//        INetworkElement mechanism = manager.getMechanism(loc);
-//        // Проверяем, является ли сломанный блок генератором
-//        if(mechanism == null) return;
-//
-//        ItemStack tool = player.getInventory().getItemInMainHand();
-//        if (!ToolUtil.canBreakWithTool(player, tool)) {
-//            event.setCancelled(true);
-//            player.sendMessage("§c " + mechanismType.getDisplayName() + " можно сломать только киркой!");
-//            return;
+    @EventHandler
+    public void onMechanismBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        Player player = event.getPlayer();
+        Location loc = block.getLocation();
+
+        INetworkElement mechanism = manager.getMechanism(loc);
+        if(mechanism == null) return;
+
+        // Проверяем, является ли сломанный блок механизмом
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        if (!ToolUtil.canBreakWithTool(player, tool)) {
+            event.setCancelled(true);
+            player.sendMessage("§c " + mechanismType.getDisplayName() + " можно сломать только киркой!");
+            return;
+        }
+        // 1. Сохраняем данные для восстановления
+        Set<INetworkElement> neighbors = new HashSet<>(mechanism.getConnections());
+        UUID oldNetworkId = mechanism.getNetworkId();
+        player.sendMessage("[Удаляю]Соседей: " + neighbors.size());
+        Set<INetworkElement> unvisited = new HashSet<>(neighbors);
+
+        for (INetworkElement neighbor : neighbors) {
+            neighbor.removeConnection(mechanism);
+        }
+        List<Set<INetworkElement>> components = new ArrayList<>();
+        while (!unvisited.isEmpty()) {
+            INetworkElement start = unvisited.iterator().next();
+            Set<INetworkElement> component = networkSystems.collectComponent(start);
+            unvisited.removeAll(component);
+            component.remove(mechanism);
+            components.add(component);
+        }
+
+        List<NetworkManager> plannedManagers = new ArrayList<>();
+        for (Set<INetworkElement> component : components) {
+            Location compLoc = component.stream().iterator().next().getLocation();
+            NetworkManager manager = networkSystems.createDetachedNetwork(compLoc);
+            plannedManagers.add(manager);
+        }
+        try {
+            transactionManager.execute(connection -> {
+                mechanismRepository.deleteMechanism(connection, mechanism.getLocation());
+                for (int i = 0; i < components.size(); i++) {
+                    NetworkManager newManager = plannedManagers.get(i);
+                    Set<INetworkElement> component = components.get(i);
+
+                    networkRepository.createNetwork(connection, newManager);
+                    mechanismRepository.batchUpdateMechanismLocNetworks(connection, component, newManager.getNetworkId());
+                }
+
+                networkRepository.deleteNetwork(connection, oldNetworkId.toString());
+                return true;
+            });
+                // 2. Удаляем связи
+
+
+                // 3. Удаляем механизм
+                manager.deleteMechanism(loc);
+
+                for (int i = 0; i < components.size(); i++) {
+                    NetworkManager newManager = plannedManagers.get(i);
+                    Set<INetworkElement> component = components.get(i);
+                    for (INetworkElement element : component) {
+                        element.setNetworkId(newManager.getNetworkId());
+                        newManager.addElement(element);
+                    }
+                }
+
+                networkSystems.removeNetworkManager(oldNetworkId);
+
+                // 6. Обновляем блок
+                spawnPlaceEffect(block);
+                event.setDropItems(false);
+                //Очищаем инвентарь
+                if (block.getState() instanceof Container cont) {
+                    cont.getInventory().clear();
+                    cont.update(true);
+                }
+                block.setType(Material.AIR);
+
+                // 7. Дропаем предмет
+                ItemStack mechanismItem = mechanismType.create(plugin).createItem(1);
+                block.getWorld().dropItemNaturally(block.getLocation(), mechanismItem);
+
+    }
+            catch (SQLException e) {
+        event.setCancelled(true);
+        //При откате удалим созданные сети
+//        if(!networkComponent.isEmpty()){
+//            networkComponent.forEach((net, elements) -> {
+//                networkSystems.removeNetworkManager(net);
+//            });
 //        }
-//
-//        Set<INetworkElement> neighbors = mechanism.getConnections();
-//
+
+        player.sendMessage("§cОшибка при сохранении механизма");
+        e.printStackTrace();
+    }
+
+
+
 //        for(INetworkElement neighbor : neighbors) {
 //            neighbor.removeConnection(mechanism);
 //        }
@@ -222,7 +310,7 @@ public class MechanismListener implements Listener {
 //        // Дропаем предмет генератора
 //        ItemStack mechanismItem = mechanismType.create(plugin).createItem(1);
 //        block.getWorld().dropItemNaturally(block.getLocation(), mechanismItem);
-//    }
+    }
 
     /**
      * Проверка блока при касании палочкой

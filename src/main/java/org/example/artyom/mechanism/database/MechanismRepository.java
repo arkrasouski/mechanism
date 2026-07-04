@@ -1,13 +1,14 @@
 package org.example.artyom.mechanism.database;
 
+import org.bukkit.Location;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 import org.example.artyom.mechanism.mechanism.cable.Cable;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
+import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.sql.*;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.bukkit.Bukkit.getServer;
 
@@ -87,6 +88,54 @@ public class MechanismRepository {
                 return updated > 0;
             }
 
+    }
+
+    /**
+     * Обновить сеть для конкретных механизмов
+     */
+    public boolean batchUpdateMechanismLocNetworks(
+            Connection connection,
+            Set<INetworkElement> elements,
+            UUID newNetworkId
+    ) throws SQLException {
+        if (elements.isEmpty()) return true;
+
+        String sql = "UPDATE mechanism SET network_id = ? " +
+                "WHERE world_name = ? AND x = ? AND y = ? AND z = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            for (INetworkElement element : elements) {
+                Location loc = element.getLocation();
+                ps.setString(1, newNetworkId.toString());
+                ps.setString(2, loc.getWorld().getName());
+                ps.setInt(3, loc.getBlockX());
+                ps.setInt(4, loc.getBlockY());
+                ps.setInt(5, loc.getBlockZ());
+                ps.addBatch();
+            }
+
+            int[] results = ps.executeBatch();
+            return results.length > 0;
+        }
+    }
+    /**
+     * Удалить механизм из бд
+     */
+
+    public  boolean deleteMechanism(Connection connection, Location loc) throws SQLException {
+        String sql = """
+        
+                DELETE FROM mechanism
+        WHERE world_name = ? AND x = ? AND y = ? AND z = ?
+        """;
+        LogUtil.warn(sql);
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, loc.getWorld().getName());
+            ps.setInt(2, loc.getBlockX());
+            ps.setInt(3, loc.getBlockY());
+            ps.setInt(4, loc.getBlockZ());
+            return ps.executeUpdate() > 0;
+        }
     }
 
 //    // Получить все генераторы в сети

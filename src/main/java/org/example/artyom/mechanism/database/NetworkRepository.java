@@ -32,9 +32,8 @@ public class NetworkRepository {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql))
         {
-            LogUtil.warn("Пусто" + network.getNetworkId().toString());
             stmt.setString(1, network.getNetworkId().toString());
-            stmt.setString(2, network.getWorld().getName());//network.getWorldName());
+            stmt.setString(2, network.getWorld().getName());
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -81,10 +80,12 @@ public class NetworkRepository {
     }
 
     // Удалить сеть
-    public boolean deleteNetwork(String networkId) {
+    public boolean deleteNetwork(Connection connection, String networkId) {
         String sql = "DELETE FROM networks WHERE network_id = ?";
-
-        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
+        LogUtil.warn("net sql + " + sql);
+        LogUtil.warn(networkId);
+        pool.printPoolStats();
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, networkId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {

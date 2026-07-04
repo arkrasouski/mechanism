@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -51,4 +52,16 @@ public abstract class NetworkElement implements INetworkElement {
 
     @Override
     public MechanismType getMechanismType() { return mechanismType; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof INetworkElement that)) return false;
+        return Objects.equals(location, that.getLocation());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(location);
+    }
 }

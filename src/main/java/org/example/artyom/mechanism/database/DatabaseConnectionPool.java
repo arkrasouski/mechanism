@@ -29,8 +29,8 @@ public class DatabaseConnectionPool {
         config.setJdbcUrl("jdbc:sqlite:" + JDBC_URL);
 
         // Настройки пула
-        config.setMaximumPoolSize(10);           // Максимальное количество соединений
-        config.setMinimumIdle(5);                // Минимальное количество idle-соединений
+        config.setMaximumPoolSize(1);           // Максимальное количество соединений
+        config.setMinimumIdle(1);                // Минимальное количество idle-соединений
         config.setConnectionTimeout(30000);      // Таймаут ожидания соединения (мс)
         config.setIdleTimeout(600000);           // Таймаут простоя соединения (мс)
         config.setMaxLifetime(1800000);          // Максимальное время жизни соединения (мс)
