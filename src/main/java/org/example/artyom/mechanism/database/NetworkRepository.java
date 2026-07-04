@@ -16,17 +16,23 @@ import java.util.List;
 import java.util.UUID;
 
 public class NetworkRepository {
-    private static DatabaseManager db;
+    private final DatabaseConnectionPool pool;
+    private final MechanismRepository mechanismRepository;
 
-    public NetworkRepository(DatabaseManager db) {
-        NetworkRepository.db = db;
+    public NetworkRepository(DatabaseConnectionPool pool, MechanismRepository mechanismRepository) {
+        this.pool = pool;
+        this.mechanismRepository = mechanismRepository;
     }
 
     // Создать новую сеть
-    public static boolean createNetwork(NetworkManager network) {
+    public boolean createNetwork(NetworkManager network) {
         String sql = "INSERT INTO networks (network_id, world_name) VALUES (?, ?)";
 
-        try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
+        LogUtil.warn(sql);
+        pool.printPoolStats();
+        try (Connection conn = pool.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql))
+        {
             stmt.setString(1, network.getNetworkId().toString());
             stmt.setString(2, "Earth");//network.getWorldName());
             return stmt.executeUpdate() > 0;
@@ -37,10 +43,10 @@ public class NetworkRepository {
     }
 
     // Получить сеть по ID
-    public static NetworkManager getNetworkById(String networkId) {
+    public NetworkManager getNetworkById(String networkId) {
         String sql = "SELECT * FROM networks WHERE network_id = ?";
 
-        try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
             stmt.setString(1, networkId);
             ResultSet rs = stmt.executeQuery();
 
@@ -55,11 +61,11 @@ public class NetworkRepository {
     }
 
     // Получить все сети в мире
-    public static List<NetworkManager> getNetworkByWorld(String worldName) {
+    public List<NetworkManager> getNetworkByWorld(String worldName) {
         List<NetworkManager> networks = new ArrayList<>();
         String sql = "SELECT * FROM networks WHERE world_name = ?";
 
-        try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
             stmt.setString(1, worldName);
             ResultSet rs = stmt.executeQuery();
 
@@ -75,10 +81,10 @@ public class NetworkRepository {
     }
 
     // Удалить сеть
-    public static boolean deleteNetwork(String networkId) {
+    public boolean deleteNetwork(String networkId) {
         String sql = "DELETE FROM networks WHERE network_id = ?";
 
-        try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
             stmt.setString(1, networkId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -91,11 +97,11 @@ public class NetworkRepository {
      * Получить все сети из бд
      */
 
-    public static List<NetworkManager> getAllNetworks() {
+    public List<NetworkManager> getAllNetworks() {
         List<NetworkManager> networks = new ArrayList<>();
         String sql = "SELECT * FROM networks";
 
-        try (Statement stmt = db.getConnection().createStatement();
+        try (Statement stmt = pool.getConnection().createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
@@ -115,7 +121,7 @@ public class NetworkRepository {
     /**
      * Удаляет старые сети
      */
-    private static void deleteSecondaryNetworks(
+    private void deleteSecondaryNetworks(
             Connection connection,
             List<UUID> secondaryNetworkIds
     ) throws SQLException {
@@ -149,19 +155,19 @@ public class NetworkRepository {
     /**
      * Функция обновления элементов сетей при склейке и удалении старых сетей
      */
-    public static void mergeNetworks(
+    public void mergeNetworks(
             UUID primaryNetworkId,
             List<UUID> secondaryNetworkIds,
             INetworkElement newElement
     ) throws SQLException {
-        try (Connection connection = db.getConnection()) {
+        try (Connection connection = pool.getConnection()) {
             connection.setAutoCommit(false);
 
             try {
-                MechanismRepository.addMechanism(connection, newElement);
+                mechanismRepository.addMechanism(connection, newElement);
 
                 LogUtil.warn("Здесь был");
-                MechanismRepository.batchUpdateMechanismNetworks(connection, primaryNetworkId, secondaryNetworkIds);
+                mechanismRepository.batchUpdateMechanismNetworks(connection, primaryNetworkId, secondaryNetworkIds);
                 LogUtil.warn("Перехожу к delete");
 
                 deleteSecondaryNetworks(connection, secondaryNetworkIds);

@@ -4,8 +4,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.example.artyom.mechanism.IMechanismManager;
 import org.example.artyom.mechanism.Mechanism;
-import org.example.artyom.mechanism.database.CableRepository;
-import org.example.artyom.mechanism.database.GeneratorRepository;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.items.CableItem;
 import org.example.artyom.mechanism.items.GeneratorItem;

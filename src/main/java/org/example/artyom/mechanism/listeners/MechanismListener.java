@@ -33,12 +33,16 @@ public class MechanismListener implements Listener {
     private final MechanismManager manager;
     private final NetworkSystems networkSystems;
     private final MechanismType mechanismType;
+    private final NetworkRepository networkRepository;
+    private final MechanismRepository mechanismRepository;
 
-    public MechanismListener(Mechanism plugin, MechanismManager manager, NetworkSystems networkSystems, MechanismType mechanismType) {
+    public MechanismListener(Mechanism plugin, MechanismManager manager, NetworkSystems networkSystems, MechanismType mechanismType, NetworkRepository networkRepository, MechanismRepository mechanismRepository) {
         this.plugin = plugin;
         this.manager = manager;
         this.networkSystems = networkSystems;
         this.mechanismType = mechanismType;
+        this.networkRepository = networkRepository;
+        this.mechanismRepository = mechanismRepository;
     }
 
     /**
@@ -84,10 +88,10 @@ public class MechanismListener implements Listener {
         }
         if(neighbors.isEmpty()) {
             NetworkManager networkManager =  networkSystems.addNetworkManager();
-            NetworkRepository.createNetwork(networkManager);
+            networkRepository.createNetwork(networkManager);
             //Если элемент один, создаем ему сеть и в бд его
             networkManager.addElement(mechanism);
-            MechanismRepository.addMechanism(null, mechanism);
+            mechanismRepository.addMechanism(null, mechanism);
             player.sendMessage("Создаю новую сеть!");
         }
         else {

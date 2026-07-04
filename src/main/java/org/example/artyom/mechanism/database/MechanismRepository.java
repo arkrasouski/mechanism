@@ -1,35 +1,27 @@
 package org.example.artyom.mechanism.database;
 
-import com.google.common.graph.Network;
-import org.apache.commons.logging.Log;
-import org.bukkit.Location;
-import org.example.artyom.mechanism.Mechanism;
-import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 import org.example.artyom.mechanism.mechanism.cable.Cable;
-import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
-import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.bukkit.Bukkit.getServer;
 
 public class MechanismRepository {
-    private static DatabaseManager db = null;
+    private final DatabaseConnectionPool pool;
 
-    public MechanismRepository(DatabaseManager db) {
-        MechanismRepository.db = db;
+    public MechanismRepository(DatabaseConnectionPool pool) {
+        this.pool = pool;
     }
 
     /**
      * Добавить механизм в бд
      */
-    public static boolean addMechanism(Connection connection, INetworkElement networkElement) {
+    public boolean addMechanism(Connection connection, INetworkElement networkElement) {
         int type = networkElement.getMechanismType().ordinal();
         String network_id = networkElement.getNetworkId().toString();
         String world_name = networkElement.getLocation().getWorld().getName();
@@ -55,10 +47,11 @@ public class MechanismRepository {
         (network_id, world_name, x, y, z, type, is_working, current_energy) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """;
-        if (connection == null) {
+        boolean is_not_connection = connection == null;
+        if (is_not_connection) {
             try {
 
-                connection = db.getConnection();
+                connection = pool.getConnection();
                 LogUtil.warn(connection.isClosed() + "=closed");
                 connection.setAutoCommit(true);
 
@@ -82,13 +75,19 @@ public class MechanismRepository {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
+        } finally {
+            try {
+                if (is_not_connection && connection != null) connection.close(); // Возвращаем соединение в пул!
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     /**
      * Обновить сеть всех механизмов из старых сетей
      */
-    public static void batchUpdateMechanismNetworks(
+    public void batchUpdateMechanismNetworks(
             Connection connection,
             UUID primaryNetworkId,
             List<UUID> secondaryNetworkIds
@@ -128,7 +127,7 @@ public class MechanismRepository {
 //        List<INetworkElement> generators = new ArrayList<>();
 //        String sql = "SELECT * FROM generators WHERE network_id = ?";
 //
-//        try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
+//        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
 //            stmt.setString(1, networkId);
 //            ResultSet rs = stmt.executeQuery();
 //
@@ -157,7 +156,7 @@ public class MechanismRepository {
 //        List<Generator> generators = new ArrayList<>();
 //        String sql = "DELETE FROM generators WHERE network_id = ?";
 //
-//        try (PreparedStatement stmt = db.getConnection().prepareStatement(sql)) {
+//        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
 //            stmt.setString(1, networkId);
 //            return stmt.executeUpdate() > 0;
 //        } catch (SQLException e) {

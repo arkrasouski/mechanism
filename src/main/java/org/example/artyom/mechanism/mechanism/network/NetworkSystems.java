@@ -12,6 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class NetworkSystems {
     private final Map<UUID, NetworkManager> networks = new ConcurrentHashMap<>();
+    private final NetworkRepository networkRepository;
+
+    public NetworkSystems(NetworkRepository networkRepository) {
+        this.networkRepository = networkRepository;
+    }
 
     /**
      * Вернуть все сети
@@ -136,7 +141,7 @@ public class NetworkSystems {
         }
 
         try {
-            NetworkRepository.mergeNetworks(
+            networkRepository.mergeNetworks(
                     primaryNetwork.getNetworkId(),
                     secondaryNetworks.stream().map(NetworkManager::getNetworkId).toList(),
                     newElement
