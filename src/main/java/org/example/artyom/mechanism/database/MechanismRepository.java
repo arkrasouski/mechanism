@@ -1,10 +1,16 @@
 package org.example.artyom.mechanism.database;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 import org.example.artyom.mechanism.mechanism.cable.Cable;
+import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
+import org.example.artyom.mechanism.utils.ChunkUtil;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.sql.*;
@@ -27,6 +33,9 @@ public class MechanismRepository {
         boolean is_working;
         int current_energy;
 
+        int chunk_x = ChunkUtil.getChunkX(x);
+        int chunk_z = ChunkUtil.getChunkZ(z);
+
         if (networkElement instanceof Mech mechanism) {
             is_working = mechanism.isWorking();
             current_energy = mechanism.getCurrentEnergy();
@@ -39,8 +48,8 @@ public class MechanismRepository {
 
         String sql = """
         INSERT INTO mechanism
-        (network_id, world_name, x, y, z, type, is_working, current_energy) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (network_id, world_name, x, y, z, type, is_working, current_energy, chunk_x, chunk_z) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -52,6 +61,8 @@ public class MechanismRepository {
             stmt.setInt(6, type);
             stmt.setBoolean(7, is_working);
             stmt.setDouble(8, current_energy);
+            stmt.setInt(9, chunk_x);
+            stmt.setInt(10, chunk_z);
 
             return stmt.executeUpdate() > 0;
         }
@@ -132,46 +143,92 @@ public class MechanismRepository {
         }
     }
 
-//    // Получить все генераторы в сети
-//    public static List<INetworkElement> getGeneratorsByNetwork(String networkId) {
-//        List<INetworkElement> generators = new ArrayList<>();
-//        String sql = "SELECT * FROM generators WHERE network_id = ?";
-//
-//        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
-//            stmt.setString(1, networkId);
-//            ResultSet rs = stmt.executeQuery();
-//
-//            while (rs.next()) {
-//                Generator generator = new Generator(new Location(
-//                        getServer().getWorld("world"),
-//                        rs.getInt("x"),
-//                        rs.getInt("y"),
-//                        rs.getInt("z")
-//                )
-//
-//                );
-//                generator.setCurrentEnergy(rs.getInt("current_energy"));
-//                generator.setNetworkId(UUID.fromString(rs.getString("network_id")));
-//                generators.add(generator);
-//            }
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
-//
-//        return generators;
-//    }
-//
-//    // удалить генераторы из сети
-//    public static boolean removeGeneratorsByNetwork(String networkId) {
-//        List<Generator> generators = new ArrayList<>();
-//        String sql = "DELETE FROM generators WHERE network_id = ?";
-//
-//        try (PreparedStatement stmt = pool.getConnection().prepareStatement(sql)) {
-//            stmt.setString(1, networkId);
-//            return stmt.executeUpdate() > 0;
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return false;
-//        }
-//    }
+    /**
+     * Получить механизмы по чанку
+     */
+    public  List<INetworkElement> findByChunk(Connection connection, World world, int chunkX, int chunkZ) throws SQLException {
+        String sql = """
+                SELECT 
+                    * 
+                FROM mechanism
+                WHERE world_name = ?
+                    AND chunk_x = ?
+                    AND chunk_z = ?;
+        """;
+
+        List<INetworkElement> result = new ArrayList<>();
+
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, world.getName());
+            ps.setInt(2, chunkX);
+            ps.setInt(3, chunkZ);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(mapMechanism(rs));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private INetworkElement mapMechanism(ResultSet rs) throws SQLException {
+
+        if (rs.getInt("type") == MechanismType.CABLE.ordinal()) {
+            Cable cable = new Cable(new Location(
+                    Bukkit.getServer().getWorld(rs.getString("world_name")),
+                    rs.getInt("x"),
+                    rs.getInt("y"),
+                    rs.getInt("z")
+            ));
+            cable.setNetworkId(UUID.fromString(rs.getString("network_id")));
+            return cable;
+        }
+        else if(rs.getInt("type") == MechanismType.GENERATOR.ordinal()) {
+            Generator generator = new Generator(new Location(
+                    Bukkit.getServer().getWorld(rs.getString("world_name")),
+                    rs.getInt("x"),
+                    rs.getInt("y"),
+                    rs.getInt("z")
+            ),
+                    rs.getInt("current_energy"),
+                    rs.getBoolean("is_working")
+            );
+            generator.setNetworkId(UUID.fromString(rs.getString("network_id")));
+            return generator;
+        }
+        return null;
+    }
+    public void updateMechanismState(Connection connection, INetworkElement networkElement) throws SQLException {
+        String sql = """
+            UPDATE mechanism
+            SET
+                is_working = ?,
+                current_energy = ?
+            WHERE world_name = ?
+                AND x = ? AND y = ? AND z = ?
+        """;
+
+        boolean is_working;
+        int current_energy;
+        if (networkElement instanceof Mech mechanism) {
+            is_working = mechanism.isWorking();
+            current_energy = mechanism.getCurrentEnergy();
+        } else {
+            Cable mechanism = (Cable) networkElement;
+            is_working = false;
+            current_energy = 0;
+        }
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setBoolean(1, is_working);
+            ps.setInt(2, current_energy);
+            ps.setString(3, networkElement.getLocation().getWorld().getName());
+            ps.setInt(4, networkElement.getLocation().getBlockX());
+            ps.setInt(5, networkElement.getLocation().getBlockY());
+            ps.setInt(6, networkElement.getLocation().getBlockZ());
+            ps.executeUpdate();
+        }
+    }
 }

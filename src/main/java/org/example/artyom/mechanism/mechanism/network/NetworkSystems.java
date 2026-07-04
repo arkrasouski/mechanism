@@ -23,6 +23,13 @@ public class NetworkSystems {
     }
 
     /**
+     * Есть ли сеть в системе
+     */
+    public boolean hasNetwork(UUID networkId) {
+        return networks.containsKey(networkId);
+    }
+
+    /**
      * Найти сеть по локации
      */
     public NetworkManager getNetworkManager(Location location) {
