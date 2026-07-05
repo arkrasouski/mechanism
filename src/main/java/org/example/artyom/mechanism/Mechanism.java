@@ -3,10 +3,14 @@ package org.example.artyom.mechanism;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.example.artyom.mechanism.commands.MechanismCommands;
 import org.example.artyom.mechanism.commands.Monitoring;
 import org.example.artyom.mechanism.database.*;
+
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.listeners.ChunkListener;
 import org.example.artyom.mechanism.listeners.GeneratorListener;
 import org.example.artyom.mechanism.listeners.MechanismListener;
@@ -15,14 +19,15 @@ import org.example.artyom.mechanism.mechanism.MechanismType;
 
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
-import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
+import org.example.artyom.mechanism.records.ChunkKey;
 import org.example.artyom.mechanism.utils.ChunkUtil;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public final class Mechanism extends JavaPlugin {
@@ -36,6 +41,10 @@ public final class Mechanism extends JavaPlugin {
     private static NetworkSystems networkSystems;
     private static MechanismManager generatorManager;
     private static MechanismManager cableManager;
+
+    private final Set<ChunkKey> processedChunks = ConcurrentHashMap.newKeySet();
+    private final Map<Player, MechanismHolder> openedInventories = new ConcurrentHashMap<>();
+
     private final String dbPath = getDataFolder().getPath() + "/energy_networks.db";
     @Override
     public void onEnable() {
@@ -97,17 +106,22 @@ public final class Mechanism extends JavaPlugin {
                                         ),this);
 
         Bukkit.getPluginManager().registerEvents(
-                new ChunkListener(transactionManager, mechanismRepository, networkSystems),
+                new ChunkListener(transactionManager, mechanismRepository, networkSystems, processedChunks),
                 this
         );
 
         Bukkit.getPluginManager().registerEvents(
-                new GeneratorListener(generatorManager),
+                new GeneratorListener(this, generatorManager, openedInventories),
                 this
         );
 
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
+                ChunkKey key = ChunkKey.of(chunk);
+                if (!processedChunks.add(key)) {
+                    continue;
+                }
+
                 int chunkX = chunk.getX();
                 int chunkZ = chunk.getZ();
                 ChunkUtil.restoreMechanismsByChunk(transactionManager, mechanismRepository, networkSystems, world, chunkX, chunkZ);
@@ -117,7 +131,7 @@ public final class Mechanism extends JavaPlugin {
 
         //startFlushTask();
         startGenerationTask();
-
+        tickOpenedInventories();
     }
 
     @Override
@@ -131,6 +145,9 @@ public final class Mechanism extends JavaPlugin {
                 ChunkUtil.unloadMechanismsByChunk(transactionManager, mechanismRepository, networkSystems, world, chunkX, chunkZ);
             }
         }
+
+        // Очистить in-memory структуры
+        processedChunks.clear();
 
         // Закрытие пула при завершении приложения
         DatabaseConnectionPool.getInstance(dbPath).closePool();
@@ -158,6 +175,8 @@ public final class Mechanism extends JavaPlugin {
 
                 int producedEnergy = generator.produceEnergy();
                 generator.addEnergy(producedEnergy);
+                //TODO: Если открыто меню
+
 
             }
         }, 0L, 20L);
@@ -175,5 +194,17 @@ public final class Mechanism extends JavaPlugin {
                 throw new RuntimeException(e);
             }
         }, 20L * 30, 5 * 60 * 20L); // 5 * 60 * 20
+    }
+
+    private void tickOpenedInventories() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            openedInventories.forEach(
+                    (player, mechanismHolder) -> {
+
+                            LogUtil.warn("Тикаю");
+                            mechanismHolder.updateEnergyBar();
+                    }
+            );
+        }, 0L, 20L);
     }
 }

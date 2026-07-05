@@ -1,5 +1,6 @@
 package org.example.artyom.mechanism.listeners;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -242,9 +243,10 @@ public class MechanismListener implements Listener {
                 block.setType(Material.AIR);
 
                 // 7. Дропаем предмет
+            if (player.getGameMode() != GameMode.CREATIVE) {
                 ItemStack mechanismItem = mechanismType.create(plugin).createItem(1);
                 block.getWorld().dropItemNaturally(block.getLocation(), mechanismItem);
-
+            }
     }
             catch (SQLException e) {
         event.setCancelled(true);
