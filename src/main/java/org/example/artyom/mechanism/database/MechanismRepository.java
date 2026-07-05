@@ -177,8 +177,10 @@ public class MechanismRepository {
         int typeId = rs.getInt("type");
         return MechanismType.values()[typeId].createFromResultSet(rs);
     }
-    public void updateMechanismState(Connection connection, INetworkElement networkElement) throws SQLException {
+
+    public void synchronizeMechanisms(Connection connection, Collection<INetworkElement> activeMechanisms) throws SQLException {
         String sql = """
+    
             UPDATE mechanism
             SET
                 is_working = ?,
@@ -187,25 +189,32 @@ public class MechanismRepository {
                 AND x = ? AND y = ? AND z = ?
         """;
 
-        boolean is_working;
-        int current_energy;
-        if (networkElement instanceof Mech mechanism) {
-            is_working = mechanism.isWorking();
-            current_energy = mechanism.getCurrentEnergy();
-        } else {
-            Cable mechanism = (Cable) networkElement;
-            is_working = false;
-            current_energy = 0;
-        }
+        if(activeMechanisms.isEmpty()) return;
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setBoolean(1, is_working);
-            ps.setInt(2, current_energy);
-            ps.setString(3, networkElement.getLocation().getWorld().getName());
-            ps.setInt(4, networkElement.getLocation().getBlockX());
-            ps.setInt(5, networkElement.getLocation().getBlockY());
-            ps.setInt(6, networkElement.getLocation().getBlockZ());
-            ps.executeUpdate();
+            for (INetworkElement element : activeMechanisms) {
+                boolean is_working;
+                int current_energy;
+                if (element instanceof Mech mechanism) {
+
+                    is_working = mechanism.isWorking();
+                    current_energy = mechanism.getCurrentEnergy();
+                } else {
+                    Cable mechanism = (Cable) element;
+                    is_working = false;
+                    current_energy = 0;
+                }
+                ps.setBoolean(1, is_working);
+                ps.setInt(2, current_energy);
+                ps.setString(3, element.getLocation().getWorld().getName());
+                ps.setInt(4, element.getLocation().getBlockX());
+                ps.setInt(5, element.getLocation().getBlockY());
+                ps.setInt(6, element.getLocation().getBlockZ());
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        } catch (SQLException e) {
+            LogUtil.error("Failed to flush mechanism: " + activeMechanisms.iterator().next().getMechanismType().getDisplayName(), e);
         }
     }
 }

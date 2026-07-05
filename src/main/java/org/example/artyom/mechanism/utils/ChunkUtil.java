@@ -3,14 +3,17 @@ package org.example.artyom.mechanism.utils;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.database.MechanismRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
+import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -90,45 +93,43 @@ public class ChunkUtil {
         if (!hasMechanismsInChunk(world, chunkX, chunkZ)) {
             return;
         }
-        try {
-            List<INetworkElement> mechanisms = transactionManager.execute(connection -> {
-                List<INetworkElement> mechs = mechanismRepository.findByChunk(connection, world, chunkX, chunkZ);
+        for (MechanismType type : MechanismType.values()) {
+            MechanismManager manager = type.getMechanismManager();
+            List<INetworkElement> mechanismsToUnload = manager.getMechanismsByChunk(world, chunkX, chunkZ);
+            try {
+                transactionManager.execute(connection -> {
+                    mechanismRepository.synchronizeMechanisms(connection, mechanismsToUnload);
+                    return true;
+                });
+                int unloadCount = 0;
 
-                for (INetworkElement mechanism : mechs) {
-                    mechanismRepository.updateMechanismState(connection, mechanism);
-                }
+                for (INetworkElement mechanism : mechanismsToUnload) {
+                    //Удалить у соседей
+                    Set<INetworkElement> neighbors = new HashSet<>(mechanism.getConnections());
 
-                return mechs;
-            });
-            int unloadCount = 0;
-
-            for (INetworkElement mechanism : mechanisms) {
-                //Удалить у соседей
-                Set<INetworkElement> neighbors = new HashSet<>(mechanism.getConnections());
-
-                for (INetworkElement neighbor : neighbors) {
-                    neighbor.removeConnection(mechanism);
-                }
-                //Очистить соседей механзма
-                mechanism.getConnections().clear();
-
-                //Удалить механизм
-                mechanism.getMechanismType().getMechanismManager().deleteMechanism(mechanism.getLocation());
-
-                NetworkManager networkManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
-                if(networkManager != null) {
-                    networkManager.removeElement(mechanism.getLocation());
-                    if(networkManager.getElements().isEmpty()) {
-                        networkSystems.removeNetworkManager(networkManager);
+                    for (INetworkElement neighbor : neighbors) {
+                        neighbor.removeConnection(mechanism);
                     }
-                }
-                unloadCount++;
-            }
-            LogUtil.info("Unloaded " + unloadCount + " mechanism from database");
+                    //Очистить соседей механзма
+                    mechanism.getConnections().clear();
 
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
+                    //Удалить механизм
+                    manager.deleteMechanism(mechanism.getLocation());
+
+                    NetworkManager networkManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
+                    if (networkManager != null) {
+                        networkManager.removeElement(mechanism.getLocation());
+                        if (networkManager.getElements().isEmpty()) {
+                            networkSystems.removeNetworkManager(networkManager);
+                        }
+                    }
+                    unloadCount++;
+                }
+                LogUtil.info("Unloaded " + unloadCount + " mechanism from database");
+
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

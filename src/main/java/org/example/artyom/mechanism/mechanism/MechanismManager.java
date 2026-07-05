@@ -60,8 +60,10 @@ public class MechanismManager {
         return allMechanisms.containsKey(block.getLocation());
     }
 
+    /**
+     * Проверяет, есть ли механизмы в пределах чанка
+     */
     public boolean getMechanismsInChunk(World world, int chunkX, int chunkZ) {
-        List<INetworkElement> result = new ArrayList<>();
 
         // Получаем границы чанка
         int minX = chunkX * 16;
@@ -84,5 +86,31 @@ public class MechanismManager {
         }
 
         return isMechanism;
+    }
+
+    public List<INetworkElement> getMechanismsByChunk(World world, int chunkX, int chunkZ) {
+        List<INetworkElement> mechanisms = new ArrayList<>();
+        // Получаем границы чанка
+        int minX = chunkX * 16;
+        int minZ = chunkZ * 16;
+        int maxX = minX + 15;
+        int maxZ = minZ + 15;
+        String worldName = world.getName();
+
+        for (Map.Entry<Location, INetworkElement> entry : allMechanisms.entrySet()) {
+            Location loc = entry.getKey();
+
+            // Проверяем, принадлежит ли локация этому чанку
+            if (loc.getWorld().getName().equals(worldName) &&
+                    loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
+                    loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ) {
+                mechanisms.add(entry.getValue());
+            }
+        }
+        return mechanisms;
+    }
+
+    public Collection<INetworkElement> getActiveMechanisms(){
+        return allMechanisms.values();
     }
 }

@@ -13,6 +13,7 @@ import org.example.artyom.mechanism.listeners.MechanismListener;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 
+import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
@@ -20,6 +21,7 @@ import org.example.artyom.mechanism.utils.ChunkUtil;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -111,6 +113,11 @@ public final class Mechanism extends JavaPlugin {
                 ChunkUtil.restoreMechanismsByChunk(transactionManager, mechanismRepository, networkSystems, world, chunkX, chunkZ);
             }
         }
+
+
+        //startFlushTask();
+        startGenerationTask();
+
     }
 
     @Override
@@ -143,4 +150,30 @@ public final class Mechanism extends JavaPlugin {
     public static NetworkSystems getNetworkSystems() { return networkSystems; }
     public static MechanismManager getCableManager() { return cableManager; }
 
+    // Шедулеры
+    private void startGenerationTask() {
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (INetworkElement g : generatorManager.getActiveMechanisms()) {
+                Generator generator = (Generator) g;
+
+                int producedEnergy = generator.produceEnergy();
+                generator.addEnergy(producedEnergy);
+
+            }
+        }, 0L, 20L);
+    }
+
+    private void startFlushTask() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+            LogUtil.warn("Start db sync");
+            try {
+                transactionManager.execute((connection) -> {
+                    mechanismRepository.synchronizeMechanisms(connection, generatorManager.getActiveMechanisms());
+                    return true;
+                });
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }, 20L * 30, 5 * 60 * 20L); // 5 * 60 * 20
+    }
 }

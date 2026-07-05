@@ -24,7 +24,6 @@ public class GeneratorListener implements Listener {
         // Проверяем, что это ПКМ по блоку
         Player player = event.getPlayer();
         if (!(event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking())) return;
-        LogUtil.warn("CLicked!");
         Block block = event.getClickedBlock();
         if (block == null) return;
 
