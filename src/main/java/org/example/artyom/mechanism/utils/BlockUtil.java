@@ -1,9 +1,13 @@
 package org.example.artyom.mechanism.utils;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 
 public class BlockUtil {
@@ -60,6 +64,14 @@ public class BlockUtil {
         };
     }
 
+    public static Location extractLocation(ResultSet rs) throws SQLException {
+        return new Location(
+                Bukkit.getServer().getWorld(rs.getString("world_name")),
+                rs.getInt("x"),
+                rs.getInt("y"),
+                rs.getInt("z")
+        );
+    }
 
 
 //    public static <T extends BaseMechanism, U extends BaseMechanismManager<T>> boolean validateLocation(Location location, U manager) {

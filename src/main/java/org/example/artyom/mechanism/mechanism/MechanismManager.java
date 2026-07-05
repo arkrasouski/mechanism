@@ -2,6 +2,7 @@ package org.example.artyom.mechanism.mechanism;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
@@ -59,15 +60,15 @@ public class MechanismManager {
         return allMechanisms.containsKey(block.getLocation());
     }
 
-    public boolean getMechanismsInChunk(Chunk chunk) {
+    public boolean getMechanismsInChunk(World world, int chunkX, int chunkZ) {
         List<INetworkElement> result = new ArrayList<>();
 
         // Получаем границы чанка
-        int minX = chunk.getX() * 16;
-        int minZ = chunk.getZ() * 16;
+        int minX = chunkX * 16;
+        int minZ = chunkZ * 16;
         int maxX = minX + 15;
         int maxZ = minZ + 15;
-        String worldName = chunk.getWorld().getName();
+        String worldName = world.getName();
 
         boolean isMechanism = false;
         // Перебираем все механизмы

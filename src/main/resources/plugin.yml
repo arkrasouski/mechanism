@@ -12,3 +12,5 @@ commands:
     description: Выдает барьер
   getcable:
     description: Выдает кабель
+  monitor:
+    description: Выдает информацию о механизмах в памяти

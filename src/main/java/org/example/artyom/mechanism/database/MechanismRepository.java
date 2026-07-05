@@ -174,31 +174,8 @@ public class MechanismRepository {
     }
 
     private INetworkElement mapMechanism(ResultSet rs) throws SQLException {
-
-        if (rs.getInt("type") == MechanismType.CABLE.ordinal()) {
-            Cable cable = new Cable(new Location(
-                    Bukkit.getServer().getWorld(rs.getString("world_name")),
-                    rs.getInt("x"),
-                    rs.getInt("y"),
-                    rs.getInt("z")
-            ));
-            cable.setNetworkId(UUID.fromString(rs.getString("network_id")));
-            return cable;
-        }
-        else if(rs.getInt("type") == MechanismType.GENERATOR.ordinal()) {
-            Generator generator = new Generator(new Location(
-                    Bukkit.getServer().getWorld(rs.getString("world_name")),
-                    rs.getInt("x"),
-                    rs.getInt("y"),
-                    rs.getInt("z")
-            ),
-                    rs.getInt("current_energy"),
-                    rs.getBoolean("is_working")
-            );
-            generator.setNetworkId(UUID.fromString(rs.getString("network_id")));
-            return generator;
-        }
-        return null;
+        int typeId = rs.getInt("type");
+        return MechanismType.values()[typeId].createFromResultSet(rs);
     }
     public void updateMechanismState(Connection connection, INetworkElement networkElement) throws SQLException {
         String sql = """

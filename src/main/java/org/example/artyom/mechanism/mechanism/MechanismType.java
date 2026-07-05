@@ -12,7 +12,11 @@ import org.example.artyom.mechanism.mechanism.functional_interfaces.*;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
+
+import static org.example.artyom.mechanism.utils.BlockUtil.extractLocation;
 
 /**
  * Класс типа механизма
@@ -22,13 +26,29 @@ public enum MechanismType  {
     CABLE(
             Material.PURPLE_STAINED_GLASS_PANE,
             "Кабель",
-            "Супер мега кабель")
-    ,
+            "Супер мега кабель") {
+        @Override
+        public INetworkElement createFromResultSet(ResultSet rs) throws SQLException {
+            Cable cable = new Cable(extractLocation(rs));
+            cable.setNetworkId(UUID.fromString(rs.getString("network_id")));
+            return cable;
+        }
+    },
     GENERATOR(
               Material.DROPPER,
              "Генератор",
-             "Супер мега генератор")
-    ,
+             "Супер мега генератор") {
+        @Override
+        public INetworkElement createFromResultSet(ResultSet rs) throws SQLException {
+            Generator generator = new Generator(
+                    extractLocation(rs),
+                    rs.getInt("current_energy"),
+                    rs.getBoolean("is_working")
+            );
+            generator.setNetworkId(UUID.fromString(rs.getString("network_id")));
+            return generator;
+        }
+    },
 
     //BARRIER(Barrier.class, Material.BARREL, "Барьер", "Супер мега барьер")
     ;
@@ -79,7 +99,7 @@ public enum MechanismType  {
     public Material getMaterial() { return material; }
     public String getDisplayName() { return "§6⚡" + displayName + "⚡"; }
     public String getGuiLore() {return "§7" + guiLore + "!"; }
-
+    public abstract INetworkElement createFromResultSet(ResultSet rs) throws SQLException;
     /**
      * Создает объект нужного класса
      */
