@@ -8,6 +8,7 @@ import org.example.artyom.mechanism.commands.MechanismCommands;
 import org.example.artyom.mechanism.commands.Monitoring;
 import org.example.artyom.mechanism.database.*;
 import org.example.artyom.mechanism.listeners.ChunkListener;
+import org.example.artyom.mechanism.listeners.GeneratorListener;
 import org.example.artyom.mechanism.listeners.MechanismListener;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -95,6 +96,11 @@ public final class Mechanism extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(
                 new ChunkListener(transactionManager, mechanismRepository, networkSystems),
+                this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new GeneratorListener(generatorManager),
                 this
         );
 
