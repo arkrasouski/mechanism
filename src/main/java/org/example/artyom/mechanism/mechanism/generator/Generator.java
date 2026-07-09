@@ -26,7 +26,10 @@ public class Generator extends Producer
         );
     }
 
-    public Generator(Location location, int currentEnergy, boolean isWorking) {
+    /**
+     * Конструктор создания генератора с готовыми значениями энергии и флага работы
+     */
+        public Generator(Location location, int currentEnergy, boolean isWorking) {
         super(location,
                 currentEnergy,
                 isWorking,

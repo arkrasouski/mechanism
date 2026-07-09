@@ -1,5 +1,6 @@
 package org.example.artyom.mechanism;
 
+import com.google.common.graph.Network;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -11,22 +12,25 @@ import org.example.artyom.mechanism.commands.Monitoring;
 import org.example.artyom.mechanism.database.*;
 
 import org.example.artyom.mechanism.inventories.MechanismHolder;
+import org.example.artyom.mechanism.listeners.BarrierListener;
 import org.example.artyom.mechanism.listeners.ChunkListener;
 import org.example.artyom.mechanism.listeners.GeneratorListener;
 import org.example.artyom.mechanism.listeners.MechanismListener;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 
+import org.example.artyom.mechanism.mechanism.barrier.Barrier;
+import org.example.artyom.mechanism.mechanism.cable.Cable;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
+import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.records.ChunkKey;
 import org.example.artyom.mechanism.utils.ChunkUtil;
 import org.example.artyom.mechanism.utils.LogUtil;
 
 import java.sql.SQLException;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -41,6 +45,12 @@ public final class Mechanism extends JavaPlugin {
     private static NetworkSystems networkSystems;
     private static MechanismManager generatorManager;
     private static MechanismManager cableManager;
+    private static MechanismManager barrierManager;
+
+    Map<UUID, NetworkManager> networks = new HashMap<>();
+    static Map<UUID, List<INetworkElement>> generatorsByNetwork = new HashMap<>();
+    static Map<UUID, List<INetworkElement>> barriersByNetwork = new HashMap<>();
+    static Map<UUID, List<INetworkElement>> cablesByNetwork = new HashMap<>();
 
     private final Set<ChunkKey> processedChunks = ConcurrentHashMap.newKeySet();
     private final Map<Player, MechanismHolder> openedInventories = new ConcurrentHashMap<>();
@@ -74,6 +84,10 @@ public final class Mechanism extends JavaPlugin {
         //managers
         generatorManager = new MechanismManager(this);
         cableManager = new MechanismManager(this);
+        barrierManager = new MechanismManager(this);
+
+
+
         //network
         networkSystems = new NetworkSystems();
 
@@ -83,7 +97,14 @@ public final class Mechanism extends JavaPlugin {
         getCommand("getbarrier").setExecutor(new MechanismCommands(this));
         getCommand("getcable").setExecutor(new MechanismCommands(this));
 
-        getCommand("monitor").setExecutor(new Monitoring(networkSystems, generatorManager, cableManager));
+        getCommand("monitor").setExecutor(new Monitoring(
+                networkSystems,
+                generatorManager,
+                cableManager,
+                barrierManager,
+                generatorsByNetwork,
+                cablesByNetwork,
+                barriersByNetwork));
 
         //listeners
         Bukkit.getPluginManager().registerEvents(
@@ -104,6 +125,15 @@ public final class Mechanism extends JavaPlugin {
                         networkRepository,
                         mechanismRepository
                                         ),this);
+        Bukkit.getPluginManager().registerEvents(
+                new MechanismListener(this,
+                        barrierManager,
+                        networkSystems,
+                        MechanismType.BARRIER,
+                        transactionManager,
+                        networkRepository,
+                        mechanismRepository
+                ),this);
 
         Bukkit.getPluginManager().registerEvents(
                 new ChunkListener(transactionManager, mechanismRepository, networkSystems, processedChunks),
@@ -112,6 +142,11 @@ public final class Mechanism extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(
                 new GeneratorListener(this, generatorManager, openedInventories),
+                this
+        );
+
+        Bukkit.getPluginManager().registerEvents(
+                new BarrierListener(barrierManager),
                 this
         );
 
@@ -166,6 +201,11 @@ public final class Mechanism extends JavaPlugin {
     public static MechanismManager getGeneratorManager() { return generatorManager; }
     public static NetworkSystems getNetworkSystems() { return networkSystems; }
     public static MechanismManager getCableManager() { return cableManager; }
+    public static MechanismManager getBarrierManager() { return barrierManager; }
+
+    public static Map<UUID, List<INetworkElement>> getGeneratorsByNetwork() {return generatorsByNetwork;}
+    public static Map<UUID, List<INetworkElement>> getCablesByNetwork() {return cablesByNetwork;}
+    public static Map<UUID, List<INetworkElement>> getBarriersByNetwork() {return barriersByNetwork;}
 
     // Шедулеры
     private void startGenerationTask() {
@@ -175,7 +215,32 @@ public final class Mechanism extends JavaPlugin {
 
                 int producedEnergy = generator.produceEnergy();
                 generator.addEnergy(producedEnergy);
-                //TODO: Если открыто меню
+//TODO: Если открыто меню
+                UUID networkId = generator.getNetworkId();
+                List<INetworkElement> barriers = barriersByNetwork.get(networkId);
+
+                if (barriers == null || barriers.isEmpty()) return;
+
+                Barrier best = null;
+                double bestDist = Double.MAX_VALUE;
+
+                for (INetworkElement b : barriers) {
+                    Barrier barrier = (Barrier) b;
+                    if (barrier.isFull()) continue;
+
+                    double dist = barrier.getLocation().distanceSquared(generator.getLocation());
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        best = barrier;
+                    }
+                }
+
+                if (best != null) {
+                    int sent = generator.getEnergyTransferPerTick();
+                    generator.extractEnergy(sent);
+                    best.addEnergy(sent);
+                }
+
 
 
             }
@@ -207,4 +272,6 @@ public final class Mechanism extends JavaPlugin {
             );
         }, 0L, 20L);
     }
+
+
 }

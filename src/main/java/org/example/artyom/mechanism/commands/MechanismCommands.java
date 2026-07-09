@@ -8,6 +8,8 @@ import org.bukkit.inventory.ItemStack;
 
 import org.example.artyom.mechanism.Mechanism;
 
+import org.example.artyom.mechanism.items.BarrierItem;
+import org.example.artyom.mechanism.items.CableItem;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,17 +47,17 @@ public class MechanismCommands implements CommandExecutor {
 //            return true;
 //        });
 //
-//        commands.put("getbarrier", (player, args) -> {
-//            int amount = parseAmount(args, 0, 1);
-//            ItemStack item = new BarrierItem(plugin).createItem(amount);
-//            return giveItemToPlayer(player, item, "Барьер", amount);
-//        });
+        commands.put("getbarrier", (player, args) -> {
+            int amount = parseAmount(args, 0, 1);
+            ItemStack item = new BarrierItem(plugin).createItem(amount);
+            return giveItemToPlayer(player, item, "Барьер", amount);
+        });
 //
-//        commands.put("getcable", (player, args) -> {
-//            int amount = parseAmount(args, 0, 64);
-//            ItemStack item = new CableItem(plugin).createItem(amount);
-//            return giveItemToPlayer(player, item, "Кабель", amount);
-//        });
+        commands.put("getcable", (player, args) -> {
+            int amount = parseAmount(args, 0, 64);
+            ItemStack item = new CableItem(plugin).createItem(amount);
+            return giveItemToPlayer(player, item, "Кабель", amount);
+        });
     }
 
     @Override

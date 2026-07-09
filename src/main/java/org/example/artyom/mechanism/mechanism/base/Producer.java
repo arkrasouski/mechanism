@@ -62,4 +62,6 @@ public abstract class Producer extends Mech implements IProducer {
         }
         return 0;
     }
+
+    public int getEnergyTransferPerTick() {return energy_transfer_per_tick;}
 }

@@ -50,4 +50,13 @@ public abstract class Mech extends NetworkElement implements IMech {
     public boolean isWorking() {
         return isWorking;
     }
+
+    @Override
+    public boolean hasSpace() {return currentEnergy < capacity; }
+
+    @Override
+    public int freeSpace() { return capacity - currentEnergy; }
+
+    @Override
+    public boolean isFull() {return capacity == currentEnergy; }
 }

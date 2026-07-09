@@ -13,10 +13,7 @@ import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class ChunkUtil {
     public static int getChunkX(int blockX) {
@@ -61,11 +58,17 @@ public class ChunkUtil {
             for (INetworkElement mechanism : mechanisms) {
                 restoredCount++;
                 NetworkManager networkManager;
-                if(networkSystems.hasNetwork(mechanism.getNetworkId())) {
-                    networkManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
+                Map<UUID, List<INetworkElement>> mechanismMap = mechanism.getMechanismType().getMechsByNetwork();
+                UUID networkId = mechanism.getNetworkId();
+                if(networkSystems.hasNetwork(networkId)) {
+                    networkManager = networkSystems.getNetworkManager(networkId);
+                    mechanismMap.computeIfAbsent(networkId, id -> new ArrayList<>())
+                            .add(mechanism);
                 } else {
-                    networkManager = new NetworkManager(mechanism.getNetworkId(), mechanism.getLocation().getWorld());
+                    networkManager = new NetworkManager(networkId, mechanism.getLocation().getWorld());
                     networkSystems.addNetworkManager(networkManager);
+                    mechanismMap.computeIfAbsent(networkId, id -> new ArrayList<>())
+                            .add(mechanism);
                 }
                 networkManager.addElement(mechanism);
                 mechanism.getMechanismType().getMechanismManager().registerMechanism(mechanism, mechanism.getLocation());
@@ -95,6 +98,7 @@ public class ChunkUtil {
         }
         for (MechanismType type : MechanismType.values()) {
             MechanismManager manager = type.getMechanismManager();
+            Map<UUID, List<INetworkElement>> mechanismMap = type.getMechsByNetwork();
             List<INetworkElement> mechanismsToUnload = manager.getMechanismsByChunk(world, chunkX, chunkZ);
             try {
                 transactionManager.execute(connection -> {
@@ -115,6 +119,16 @@ public class ChunkUtil {
 
                     //Удалить механизм
                     manager.deleteMechanism(mechanism.getLocation());
+
+                    UUID networkId = mechanism.getNetworkId();
+                    List<INetworkElement> elements = mechanismMap.get(networkId);
+                    if (elements != null) {
+                        elements.removeIf(e -> e.getLocation().equals(mechanism.getLocation()));
+
+                        if (elements.isEmpty()) {
+                            mechanismMap.remove(networkId);
+                        }
+                    }
 
                     NetworkManager networkManager = networkSystems.getNetworkManager(mechanism.getNetworkId());
                     if (networkManager != null) {

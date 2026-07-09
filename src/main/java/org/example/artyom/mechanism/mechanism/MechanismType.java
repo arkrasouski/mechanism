@@ -7,6 +7,8 @@ import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.items.CableItem;
 import org.example.artyom.mechanism.items.GeneratorItem;
+import org.example.artyom.mechanism.items.BarrierItem;
+import org.example.artyom.mechanism.mechanism.barrier.Barrier;
 import org.example.artyom.mechanism.mechanism.cable.Cable;
 import org.example.artyom.mechanism.mechanism.functional_interfaces.*;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
@@ -50,11 +52,22 @@ public enum MechanismType  {
         }
     },
 
-    //BARRIER(Barrier.class, Material.BARREL, "Барьер", "Супер мега барьер")
+    BARRIER(Material.BARREL,  "Барьер", "Супер мега барьер") {
+        @Override
+        public INetworkElement createFromResultSet(ResultSet rs) throws SQLException {
+            Barrier barrier = new Barrier(
+                    extractLocation(rs),
+                    rs.getInt("current_energy"),
+                    rs.getBoolean("is_working")
+            );
+            barrier.setNetworkId(UUID.fromString(rs.getString("network_id")));
+            return barrier;
+        }
+    }
     ;
     private static final Map<MechanismType, IMechanismConstructor> registry = new HashMap<>();
     private static final Map<MechanismType, IMechanismItemConstructor> registryItem = new HashMap<>();
-    private static final Map<MechanismType, IMechanismRepositoryConstructor> registryRepository = new HashMap<>();
+    private static final Map<MechanismType, IMechanismMechsByNetwork> registryMechsByNetwork = new HashMap<>();
     private static final Map<MechanismType, IMechanismRepositoryRemover> registryRepositoryRemover = new HashMap<>();
     private static final Map<MechanismType, IMechanismRepositoryMerge> registryRepositoryMerge = new HashMap<>();
     private static final Map<MechanismType, IMechanismManager> registryMechanismManager = new HashMap<>();
@@ -62,9 +75,16 @@ public enum MechanismType  {
     static {
         registry.put(GENERATOR, Generator::new);
         registry.put(CABLE, Cable::new);
+        registry.put(BARRIER, Barrier::new);
 
         registryItem.put(GENERATOR, GeneratorItem::new);
         registryItem.put(CABLE, CableItem::new);
+        registryItem.put(BARRIER, BarrierItem::new);
+
+        registryMechsByNetwork.put(GENERATOR, Mechanism::getGeneratorsByNetwork);
+        registryMechsByNetwork.put(CABLE, Mechanism::getCablesByNetwork);
+        registryMechsByNetwork.put(BARRIER, Mechanism::getBarriersByNetwork);
+
 
 //        registryRepository.put(GENERATOR, GeneratorRepository::addGenerator);
 //        registryRepository.put(CABLE, CableRepository::addCable);
@@ -77,6 +97,7 @@ public enum MechanismType  {
 //
         registryMechanismManager.put(GENERATOR, Mechanism::getGeneratorManager);
         registryMechanismManager.put(CABLE, Mechanism::getCableManager);
+        registryMechanismManager.put(BARRIER, Mechanism::getBarrierManager);
 
     }
 
@@ -137,4 +158,5 @@ public enum MechanismType  {
     public MechanismManager getMechanismManager(){
         return registryMechanismManager.get(this).getMechanism();
     }
+    public Map<UUID, List<INetworkElement>> getMechsByNetwork() {return registryMechsByNetwork.get(this).getMechanismByNetwork();}
 }
