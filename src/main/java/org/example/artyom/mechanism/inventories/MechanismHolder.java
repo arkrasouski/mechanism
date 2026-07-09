@@ -21,7 +21,6 @@ public class MechanismHolder implements InventoryHolder {
     private final MechanismType mechanismType;
 
     private final int size; //размер инвентаря
-    private final String glif; //глиф текстуры внутри инветаря
     private final List<Integer> activeSlots; //номера активных слотов
 
     public MechanismHolder(Mech mechanism, MechanismType mechanismType, int size, String glif, List<Integer> activeSlots) {
@@ -29,7 +28,6 @@ public class MechanismHolder implements InventoryHolder {
         this.mechanismType = mechanismType;
         this.inventory = Bukkit.createInventory(this, size, glif);
         this.size = size;
-        this.glif = glif;
         this.activeSlots = activeSlots;
         updateEnergyBar();
     }
@@ -39,7 +37,6 @@ public class MechanismHolder implements InventoryHolder {
     public Inventory getInventory() {
         return inventory;
     }
-    //    //TODO: ПРоверить проценты и сегменты прогресса
 //    //TODO: Тикать, если не полный бак
     public void updateEnergyBar() {
         int currentEnergy = mechanism.getCurrentEnergy();

@@ -93,12 +93,10 @@ public class GeneratorListener implements Listener {
 
         Player player = e.getPlayer();
 
-        int maxEnergy = generator.getMaxEnergyStorage();
-        int currentEnergy = generator.getCurrentEnergy();
-
         GeneratorHolder generatorHolder = new GeneratorHolder(
                 generator
         );
+        generatorHolder.updateEnergyBar();
         
         openedInventories.put(player, generatorHolder);
 

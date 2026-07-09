@@ -43,7 +43,7 @@ public class BaseItem {
     /**
      * Проверяет, является ли предмет генератором
      */
-    public static boolean isGeneratorItem(Mechanism plugin, ItemStack item, MechanismType mechanismType) {
+    public static boolean isMechanismItem(Mechanism plugin, ItemStack item, MechanismType mechanismType) {
         if (item == null || !item.hasItemMeta()) return false;
 
         ItemMeta meta = item.getItemMeta();

@@ -16,27 +16,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MechanismManager {
 
-    private final Mechanism plugin;
-
     private final Map<Location, INetworkElement> allMechanisms = new ConcurrentHashMap<>();
 
-    public MechanismManager(Mechanism plugin) {
-        this.plugin = plugin;
-    }
     /**
      * Создать генератор
      */
     public void registerMechanism(INetworkElement mechanism, Location location) {
         allMechanisms.put(location, mechanism);
-        LogUtil.info("Создан новый Генератор на " + location);
+        LogUtil.info("Создан новый " + mechanism.getMechanismType().getDisplayName() + " на " + location);
     }
 
     /**
      * Удалить генератор
      */
     public void deleteMechanism(Location location) {
+        INetworkElement mechanism = allMechanisms.get(location);
         allMechanisms.remove(location);
-        LogUtil.info("Удален генератор с " + location);
+        LogUtil.info("Удален " + mechanism.getMechanismType().getDisplayName() + location);
     }
 
     /**

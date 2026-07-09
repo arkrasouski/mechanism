@@ -82,9 +82,9 @@ public final class Mechanism extends JavaPlugin {
 
 
         //managers
-        generatorManager = new MechanismManager(this);
-        cableManager = new MechanismManager(this);
-        barrierManager = new MechanismManager(this);
+        generatorManager = new MechanismManager();
+        cableManager = new MechanismManager();
+        barrierManager = new MechanismManager();
 
 
 
