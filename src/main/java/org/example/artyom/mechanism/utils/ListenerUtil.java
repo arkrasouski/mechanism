@@ -5,6 +5,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.IConsumer;
@@ -21,6 +24,16 @@ public class ListenerUtil {
     /**
      * Проверяет, каким механизмом является блок и возвращает его тип
      */
+
+    public static MechanismType getMechanismType(Mechanism plugin, ItemStack item){
+        MechanismType mechanismType = null;
+        for(MechanismType type : MechanismType.values()){
+            if(BaseItem.isMechanismItem(plugin, item, type)){
+                mechanismType = type;
+            }
+        }
+        return mechanismType;
+    }
 
     public static MechanismType getMechanismType(Block block){
         MechanismType mechanismType = null;
@@ -107,7 +120,7 @@ public class ListenerUtil {
         int maxEnergyStorage = mechanism.getMaxEnergyStorage();
         int currentEnergy = mechanism.getCurrentEnergy();
 
-        player.sendMessage(ChatColor.YELLOW + "⚡ Генератор ⚡");
+        player.sendMessage(ChatColor.YELLOW + "  " + mechanism.getMechanismType().getDisplayName());
         player.sendMessage(ChatColor.GRAY + "  Энергия: " + formatEnergy(currentEnergy, maxEnergyStorage));
         player.sendMessage(ChatColor.GRAY + "  Статус: " + (mechanism.isWorking() ? "§aАктивен" : "§cНеактивен"));
     }

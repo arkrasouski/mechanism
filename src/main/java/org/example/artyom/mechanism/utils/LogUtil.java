@@ -25,4 +25,6 @@ public class LogUtil {
         plugin.getLogger().severe(msg);
         e.printStackTrace();
     }
+
+
 }

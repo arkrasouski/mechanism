@@ -23,7 +23,7 @@ public class MechanismManager {
      */
     public void registerMechanism(INetworkElement mechanism, Location location) {
         allMechanisms.put(location, mechanism);
-        LogUtil.info("Создан новый " + mechanism.getMechanismType().getDisplayName() + " на " + location);
+        LogUtil.info("Создан новый " + mechanism.getMechanismType().name() + " на " + location);
     }
 
     /**
@@ -32,7 +32,7 @@ public class MechanismManager {
     public void deleteMechanism(Location location) {
         INetworkElement mechanism = allMechanisms.get(location);
         allMechanisms.remove(location);
-        LogUtil.info("Удален " + mechanism.getMechanismType().getDisplayName() + location);
+        LogUtil.info("Удален " + mechanism.getMechanismType().name() + " с " + location);
     }
 
     /**

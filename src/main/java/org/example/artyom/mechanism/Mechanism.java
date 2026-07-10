@@ -104,34 +104,6 @@ public final class Mechanism extends JavaPlugin {
                 barriersByNetwork));
 
         //listeners
-//        Bukkit.getPluginManager().registerEvents(
-//                new MechanismListener(this,
-//                        cableManager,
-//                        networkSystems,
-//                        MechanismType.CABLE,
-//                        transactionManager,
-//                        networkRepository,
-//                        mechanismRepository
-//                ), this);
-//        Bukkit.getPluginManager().registerEvents(
-//                new MechanismListener(this,
-//                        generatorManager,
-//                        networkSystems,
-//                        MechanismType.GENERATOR,
-//                        transactionManager,
-//                        networkRepository,
-//                        mechanismRepository
-//                                        ),this);
-//        Bukkit.getPluginManager().registerEvents(
-//                new MechanismListener(this,
-//                        barrierManager,
-//                        networkSystems,
-//                        MechanismType.BARRIER,
-//                        transactionManager,
-//                        networkRepository,
-//                        mechanismRepository
-//                ),this);
-
         Bukkit.getPluginManager().registerEvents(
                 new NewMechanismListener(this,
                                             networkSystems,
@@ -146,18 +118,7 @@ public final class Mechanism extends JavaPlugin {
                 new ChunkListener(transactionManager, mechanismRepository, networkSystems, processedChunks),
                 this
         );
-
-
-//        Bukkit.getPluginManager().registerEvents(
-//                new GeneratorListener(this, generatorManager, openedInventories),
-//                this
-//        );
-
-//        Bukkit.getPluginManager().registerEvents(
-//                new BarrierListener(barrierManager),
-//                this
-//        );
-
+        //Восстановление из бд механизмов в прогруженных чанках
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
                 ChunkKey key = ChunkKey.of(chunk);
@@ -179,7 +140,18 @@ public final class Mechanism extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        //Остановка всех запланированных задач
+        Bukkit.getScheduler().cancelTasks(this);
 
+        //Закрытие всех открытых Inventory (если они есть)
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (openedInventories.containsKey(player)) {
+                player.closeInventory();
+            }
+        }
+        openedInventories.clear();
+
+        //Сохранение прогруженных механизмов в бд
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
                 // Сохранить механизмы в чанке
@@ -189,13 +161,43 @@ public final class Mechanism extends JavaPlugin {
             }
         }
 
-        // Очистить in-memory структуры
+        // 5. Очистка менеджеров и коллекций
+        if (generatorManager != null) {
+            generatorManager.getActiveMechanisms().clear();
+        }
+
+        if (cableManager != null) {
+            cableManager.getActiveMechanisms().clear();
+        }
+
+        if (barrierManager != null) {
+            barrierManager.getActiveMechanisms().clear();
+        }
+
+        if (networkSystems != null) {
+            networkSystems.getNetworks().clear();
+        }
+
+
         processedChunks.clear();
+
+
+        if (generatorsByNetwork != null) {
+            generatorsByNetwork.clear();
+        }
+
+        if (cablesByNetwork != null) {
+            cablesByNetwork.clear();
+        }
+
+        if (barriersByNetwork != null) {
+            barriersByNetwork.clear();
+        }
 
         // Закрытие пула при завершении приложения
         DatabaseConnectionPool.getInstance(dbPath).closePool();
-        // Plugin shutdown logic
-        getLogger().info("NetworkSystems disabled!");
+
+        LogUtil.info("NetworkSystems disabled!");
     }
 
     // Getters для Repository'ев

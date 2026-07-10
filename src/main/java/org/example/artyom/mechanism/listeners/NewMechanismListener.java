@@ -77,8 +77,9 @@ public class NewMechanismListener implements Listener {
         if(!item.hasItemMeta()) return;
         //TODO::Добавить также отличие от других плагинов/предметов
 
-        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        MechanismType mechanismType = ListenerUtil.getMechanismType(plugin, item);
         if (mechanismType == null) return;
+        player.sendMessage("lol");
         MechanismManager manager = mechanismType.getMechanismManager();
 
         if (!ListenerUtil.canPlaceMechanism(block, player)) {
