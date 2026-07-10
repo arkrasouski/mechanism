@@ -12,10 +12,7 @@ import org.example.artyom.mechanism.commands.Monitoring;
 import org.example.artyom.mechanism.database.*;
 
 import org.example.artyom.mechanism.inventories.MechanismHolder;
-import org.example.artyom.mechanism.listeners.BarrierListener;
-import org.example.artyom.mechanism.listeners.ChunkListener;
-import org.example.artyom.mechanism.listeners.GeneratorListener;
-import org.example.artyom.mechanism.listeners.MechanismListener;
+import org.example.artyom.mechanism.listeners.*;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 
@@ -107,48 +104,59 @@ public final class Mechanism extends JavaPlugin {
                 barriersByNetwork));
 
         //listeners
+//        Bukkit.getPluginManager().registerEvents(
+//                new MechanismListener(this,
+//                        cableManager,
+//                        networkSystems,
+//                        MechanismType.CABLE,
+//                        transactionManager,
+//                        networkRepository,
+//                        mechanismRepository
+//                ), this);
+//        Bukkit.getPluginManager().registerEvents(
+//                new MechanismListener(this,
+//                        generatorManager,
+//                        networkSystems,
+//                        MechanismType.GENERATOR,
+//                        transactionManager,
+//                        networkRepository,
+//                        mechanismRepository
+//                                        ),this);
+//        Bukkit.getPluginManager().registerEvents(
+//                new MechanismListener(this,
+//                        barrierManager,
+//                        networkSystems,
+//                        MechanismType.BARRIER,
+//                        transactionManager,
+//                        networkRepository,
+//                        mechanismRepository
+//                ),this);
+
         Bukkit.getPluginManager().registerEvents(
-                new MechanismListener(this,
-                        cableManager,
-                        networkSystems,
-                        MechanismType.CABLE,
-                        transactionManager,
-                        networkRepository,
-                        mechanismRepository
-                ), this);
-        Bukkit.getPluginManager().registerEvents(
-                new MechanismListener(this,
-                        generatorManager,
-                        networkSystems,
-                        MechanismType.GENERATOR,
-                        transactionManager,
-                        networkRepository,
-                        mechanismRepository
-                                        ),this);
-        Bukkit.getPluginManager().registerEvents(
-                new MechanismListener(this,
-                        barrierManager,
-                        networkSystems,
-                        MechanismType.BARRIER,
-                        transactionManager,
-                        networkRepository,
-                        mechanismRepository
-                ),this);
+                new NewMechanismListener(this,
+                                            networkSystems,
+                                            transactionManager,
+                                            networkRepository,
+                                            mechanismRepository,
+                                            openedInventories
+                        ), this
+        );
 
         Bukkit.getPluginManager().registerEvents(
                 new ChunkListener(transactionManager, mechanismRepository, networkSystems, processedChunks),
                 this
         );
 
-        Bukkit.getPluginManager().registerEvents(
-                new GeneratorListener(this, generatorManager, openedInventories),
-                this
-        );
 
-        Bukkit.getPluginManager().registerEvents(
-                new BarrierListener(barrierManager),
-                this
-        );
+//        Bukkit.getPluginManager().registerEvents(
+//                new GeneratorListener(this, generatorManager, openedInventories),
+//                this
+//        );
+
+//        Bukkit.getPluginManager().registerEvents(
+//                new BarrierListener(barrierManager),
+//                this
+//        );
 
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {

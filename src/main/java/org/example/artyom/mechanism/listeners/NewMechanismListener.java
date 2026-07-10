@@ -1,32 +1,41 @@
 package org.example.artyom.mechanism.listeners;
 
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
+import org.bukkit.block.TileState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.database.MechanismRepository;
 import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
+import org.example.artyom.mechanism.inventories.GeneratorHolder;
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.IConsumer;
 import org.example.artyom.mechanism.mechanism.base.IProducer;
+import org.example.artyom.mechanism.mechanism.base.Mech;
+import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
-import org.example.artyom.mechanism.utils.BlockUtil;
-import org.example.artyom.mechanism.utils.ToolUtil;
+import org.example.artyom.mechanism.utils.*;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -37,17 +46,22 @@ public class NewMechanismListener implements Listener {
     private final TransactionManager transactionManager;
     private final NetworkRepository networkRepository;
     private final MechanismRepository mechanismRepository;
+    private final NamespacedKey key;
+    private final Map<Player, MechanismHolder> openedInventories;
 
     public NewMechanismListener(Mechanism plugin,
                                 NetworkSystems networkSystems,
                                 TransactionManager transactionManager,
                                 NetworkRepository networkRepository,
-                                MechanismRepository mechanismRepository) {
+                                MechanismRepository mechanismRepository,
+                                Map<Player, MechanismHolder> openedInventories) {
         this.plugin = plugin;
         this.networkSystems = networkSystems;
         this.transactionManager = transactionManager;
         this.networkRepository = networkRepository;
         this.mechanismRepository = mechanismRepository;
+        key = new NamespacedKey(plugin, "mechanism_items");
+        this.openedInventories = openedInventories;
     }
 
     /**
@@ -63,18 +77,11 @@ public class NewMechanismListener implements Listener {
         if(!item.hasItemMeta()) return;
         //TODO::Добавить также отличие от других плагинов/предметов
 
-        MechanismManager manager = null;
-        MechanismType mechanismType = null;
+        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        if (mechanismType == null) return;
+        MechanismManager manager = mechanismType.getMechanismManager();
 
-        for(MechanismType type : MechanismType.values()){
-            if(BaseItem.isMechanismItem(plugin, item, type)){
-                manager = type.getMechanismManager();
-                mechanismType = type;
-            }
-        }
-        if(manager == null) return;
-
-        if (!canPlaceMechanism(block, player)) {
+        if (!ListenerUtil.canPlaceMechanism(block, player)) {
             event.setCancelled(true);
             player.sendMessage("§cНельзя установить " + mechanismType.getDisplayName() + " здесь!");
             return;
@@ -171,7 +178,7 @@ public class NewMechanismListener implements Listener {
             player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
 
             // ШАГ 6: Визуальный эффект
-            spawnPlaceEffect(block);
+            ListenerUtil.spawnPlaceEffect(block);
         } catch (SQLException e) {
             event.setCancelled(true);
             player.sendMessage("§cОшибка при сохранении механизма");
@@ -188,16 +195,9 @@ public class NewMechanismListener implements Listener {
         Player player = event.getPlayer();
         Location loc = block.getLocation();
 
-        MechanismManager manager = null;
-        MechanismType mechanismType = null;
-
-        for(MechanismType type : MechanismType.values()){
-            manager = type.getMechanismManager();
-            if(manager.isMechanism(block)){
-                mechanismType = type;
-            }
-        }
-        if(mechanismType == null) return;
+        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        if (mechanismType == null) return;
+        MechanismManager manager = mechanismType.getMechanismManager();
 
         INetworkElement mechanism = manager.getMechanism(loc);
         if(mechanism == null) return;
@@ -281,7 +281,7 @@ public class NewMechanismListener implements Listener {
             }
 
             // 6. Обновляем блок
-            spawnPlaceEffect(block);
+            ListenerUtil.spawnPlaceEffect(block);
             event.setDropItems(false);
             //Очищаем инвентарь
             if (block.getState() instanceof Container cont) {
@@ -325,16 +325,9 @@ public class NewMechanismListener implements Listener {
         Block block = event.getClickedBlock();
         if (block == null) return;
 
-        MechanismManager manager = null;
-        MechanismType mechanismType = null;
-
-        for(MechanismType type : MechanismType.values()){
-            manager = type.getMechanismManager();
-            if(manager.isMechanism(block)){
-                mechanismType = type;
-            }
-        }
-        if(mechanismType == null) return;
+        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        if (mechanismType == null) return;
+        MechanismManager manager = mechanismType.getMechanismManager();
 
         INetworkElement mechanism = manager.getMechanism(block.getLocation());
         if(mechanism == null) return;
@@ -342,73 +335,175 @@ public class NewMechanismListener implements Listener {
         // Отменяем событие, чтобы не открывался ванильный интерфейс
         event.setCancelled(true);
         //Информация о сети
-        showNetworkInfo(player, mechanism);
-    }
-
-    /**
-     * Печать информации по графу
-     */
-    private void showNetworkInfo(Player player, INetworkElement netElem) {
-        Location loc = netElem.getLocation();
-        UUID networkId = netElem.getNetworkId();
-
-        NetworkManager netManager = networkSystems.getNetworkManager(networkId);
-        player.sendMessage("§6=== Информация о сети ===");
-        player.sendMessage("§7ID сети: §f" + networkId);
-        player.sendMessage("§7Локация элемента: §f" + loc);
-        player.sendMessage("§7Компонентов: §f" + netManager.getElements().size());
-
-        // Дополнительная информация (если есть доступ к конкретным множествам)
-        if (netElem instanceof IProducer) {
-            player.sendMessage("Это генератор!");
-        }
-        else if (netElem instanceof IConsumer){
-            player.sendMessage("Это барьер!");
-        } else {
-            player.sendMessage("Это кабель!");
-        }
-
-        int generatorCount = 0;
-        int cableCount = 0;
-        int barrierCount = 0;
-        for (INetworkElement elem : netManager.getElements()) {
-            if(elem instanceof IProducer) {
-                generatorCount++;
-            }
-            else if (elem instanceof IConsumer) {
-                barrierCount++;
-            }
-            else {
-                cableCount++;
-            }
-
-        }
-        player.sendMessage("§7Всего: " + generatorCount + " Генераторов" );
-        player.sendMessage("§7Всего: " + cableCount + " Кабелей");
-        player.sendMessage("§7Всего: " + barrierCount + " Барьеров");
+        ListenerUtil.showNetworkInfo(player, mechanism);
     }
 
 
-    /**
-     * Эффект спавна механизма
-     */
-    private void spawnPlaceEffect(Block block) {
-        block.getWorld().playSound(block.getLocation(),
-                org.bukkit.Sound.BLOCK_BEACON_ACTIVATE, 0.5f, 1.5f);
-        block.getWorld().spawnParticle(org.bukkit.Particle.PORTAL,
-                block.getLocation().add(0.5, 1, 0.5), 20, 0.3, 0.3, 0.3, 0.1);
+    @EventHandler
+    public void onInteractInfo(PlayerInteractEvent event) {
+        // Проверяем, что это ПКМ по блоку
+        Player player = event.getPlayer();
+        if (!(event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking())) return;
+        Block block = event.getClickedBlock();
+        if (block == null) return;
+
+        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        if (mechanismType == null) return;
+        MechanismManager manager = mechanismType.getMechanismManager();
+
+        INetworkElement element = manager.getMechanism(block);
+        if (element == null) return;
+
+        if(element instanceof Mech mechanism) {
+            event.setCancelled(true);
+
+            ListenerUtil.writeMechanismInfoToPlayer(player, mechanism);
+        }
     }
+
     /**
-     * Проверяет, можно ли ставить здесь механизм
+     * Открытие инвентаря (дополнительного)
      */
-    private boolean canPlaceMechanism(Block block, Player player) {
-        // Проверка на пустой блок
-        return block.getType() == Material.AIR || !BlockUtil.isReplaceableBlock(block);
+    @EventHandler
+    public void onInteractInventory(PlayerInteractEvent e) {
+        // Проверяем, что это ПКМ по блоку
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
-        // Проверка на наличие другого генератора
-//!mechanismManager.isMechanism(block);
+        Block block = e.getClickedBlock();
+        if (block == null) return;
 
-        // Проверка прав
-//player.hasPermission("generator.place");
+        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        if (mechanismType == null) return;
+
+        MechanismManager manager = mechanismType.getMechanismManager();
+
+        INetworkElement element = manager.getMechanism(block);
+        if (element == null) return;
+        if (element instanceof Mech mechanism) {
+            e.setCancelled(true);
+
+            Player player = e.getPlayer();
+
+            MechanismHolder holder = mechanismType.getMechanismHolder(mechanism);
+            holder.updateEnergyBar();
+
+            openedInventories.put(player, holder);
+
+            Inventory gui = holder.getInventory();
+
+            // Получаем TileState блока (для Dropper, Furnace и т.д.)
+            if (!(block.getState() instanceof TileState tileState)) {
+                player.sendMessage(ChatColor.RED + "Ошибка: блок не является TileState!");
+                return;
+            }
+
+            //Если хранилище - восстанавливаем предметы из PDC
+            if (block.getType() == Material.DROPPER || block.getType() == Material.HOPPER) {
+                MechanismStorageUtil.loadItems(tileState, gui, key);
+            }
+
+            player.openInventory(gui);
+        }
+
+    }
+
+    /**
+     * При вызове инвентаря
+     */
+    @EventHandler
+    public void onOpen(InventoryOpenEvent e) {
+        if (!(e.getInventory().getHolder() instanceof MechanismHolder h)) return;
+        //guiManager.addViewer(h.getLocation(), e.getPlayer().getUniqueId());
+    }
+
+    /**
+     * Закрытие инвентаря с сохранением в PDC
+     */
+    @EventHandler
+    public void onClose(InventoryCloseEvent e) {
+        if (!(e.getView().getTopInventory().getHolder() instanceof MechanismHolder holder)) return;
+
+        BlockState blockState = holder.getLocation().getBlock().getState();
+        if (blockState instanceof TileState tile) {
+            MechanismStorageUtil.saveItems(tile, e.getView().getTopInventory(), key);
+        }
+
+        Player player = (Player) e.getPlayer();
+        openedInventories.remove(player);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onShiftToGenerator(InventoryClickEvent e) {
+        Inventory top = e.getView().getTopInventory();
+        if (!(top.getHolder() instanceof GeneratorHolder holder)) return;
+
+        // Только shift-перенос
+        if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) return;
+        Location loc = holder.getLocation();
+        Block block = loc.getBlock();
+
+        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
+        if (mechanismType == null) return;
+        MechanismManager manager = mechanismType.getMechanismManager();
+
+        Generator generator = (Generator) manager.getMechanism(block);
+        if (generator == null) return;
+        int topSize = top.getSize();
+
+        // Только shift-клик из НИЖНЕГО инвентаря (инвентарь игрока) -> вверх
+        if (e.getRawSlot() < topSize) return;
+
+        ItemStack moving = e.getCurrentItem();
+        if (moving == null || moving.getType().isAir()) return;
+
+        // Полностью отключаем ванильный перенос, дальше всё делаем вручную
+        e.setCancelled(true);
+
+        // Важно: работать с инвентарями лучше на следующем тике, чтобы ваниль/другие плагины не перетёрли изменения
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            // Если игрок уже закрыл — выходим
+            if (!(e.getWhoClicked() instanceof Player p)) return;
+            if (p.getOpenInventory() == null) return;
+
+            Inventory topNow = p.getOpenInventory().getTopInventory();
+            if (topNow.getHolder() != holder) return; // игрок мог открыть другой GUI
+
+            // Берём актуальный предмет из того же слота НИЖНЕГО инвентаря (куда кликнули)
+            // rawSlot указывает на view; чтобы взять предмет "снизу", используем getClickedInventory в момент клика нельзя.
+            // Поэтому проще: берём из bottom по e.getSlot() НЕЛЬЗЯ; используем вычисление через view.
+            // Надёжный вариант: просто повторно читаем current item из bottom через rawSlot:
+            ItemStack movingNow = p.getOpenInventory().getItem(e.getRawSlot());
+            // В некоторых реализациях getItem(rawSlot) может вернуть null, тогда используем старое значение как fallback
+            if (movingNow == null || movingNow.getType().isAir()) movingNow = moving.clone();
+
+            int target = holder.findTargetSlot(topNow);
+            if (target == -1) {
+                // нет разрешённых мест — предмет остаётся у игрока
+                return;
+            }
+
+            // Кладём 1:1 (как у тебя было). Если нужно стакание/частичный перенос — допишем отдельно.
+            topNow.setItem(target, movingNow.clone());
+
+            // Удаляем из инвентаря игрока то, что перенесли
+            // Удаляем именно в rawSlot view
+            p.getOpenInventory().setItem(e.getRawSlot(), null);
+
+            // Дальше твоя доменная логика
+            BlockState st = loc.getBlock().getState();
+            if (st instanceof TileState tile) {
+                ItemStack cell = topNow.getItem(9);
+
+//                    if (EnergyCell.isEnergyCell(cell)) {
+//                        p.sendMessage("Аккумулятор вставлен в слот 1!");
+//                        GeneratorCellService.onCellInserted(loc);
+//                    } else {
+//                        GeneratorCellService.onCellRemoved(loc);
+//                    }
+
+                MechanismStorageUtil.saveItems(tile, topNow, key);
+            }
+        });
+
     }
 }

@@ -4,11 +4,14 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.example.artyom.mechanism.IMechanismManager;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.inventories.GeneratorHolder;
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.items.CableItem;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.items.BarrierItem;
 import org.example.artyom.mechanism.mechanism.barrier.Barrier;
+import org.example.artyom.mechanism.mechanism.base.Mech;
 import org.example.artyom.mechanism.mechanism.cable.Cable;
 import org.example.artyom.mechanism.mechanism.functional_interfaces.*;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
@@ -71,6 +74,7 @@ public enum MechanismType  {
     private static final Map<MechanismType, IMechanismRepositoryRemover> registryRepositoryRemover = new HashMap<>();
     private static final Map<MechanismType, IMechanismRepositoryMerge> registryRepositoryMerge = new HashMap<>();
     private static final Map<MechanismType, IMechanismManager> registryMechanismManager = new HashMap<>();
+    private static final Map<MechanismType, IMechanismHolderCreate> registryMechanismHolder = new HashMap<>();
 
     static {
         registry.put(GENERATOR, Generator::new);
@@ -99,6 +103,7 @@ public enum MechanismType  {
         registryMechanismManager.put(CABLE, Mechanism::getCableManager);
         registryMechanismManager.put(BARRIER, Mechanism::getBarrierManager);
 
+        registryMechanismHolder.put(GENERATOR, GeneratorHolder::new);
     }
 
     private final Material material;
@@ -133,24 +138,6 @@ public enum MechanismType  {
      */
     public BaseItem create(Mechanism plugin) {return registryItem.get(this).create(plugin); }
 
-    /**
-     * Добавляет в бд нужный механизм
-     */
-//    public boolean addNetworkToDB(INetworkElement mechanism) {return registryRepository.get(this).add(mechanism);}
-//
-//    /**
-//     * Удаляет все механизмы из сети, которая передается, в бд
-//     */
-//    public boolean removeFromPreviousNetwork(UUID networkId) {
-//        return registryRepositoryRemover.get(this).remove(networkId.toString());
-//    }
-//
-//    /**
-//     * Получить все элементы типа механизма по id сети
-//     */
-//    public List<INetworkElement> getByNetwork(UUID networkId) {
-//        return  registryRepositoryMerge.get(this).get(networkId.toString());
-//    }
 
     /**
      * Получить менджер соответствующего механизма
@@ -158,5 +145,15 @@ public enum MechanismType  {
     public MechanismManager getMechanismManager(){
         return registryMechanismManager.get(this).getMechanism();
     }
+
+    /**
+     * Получить менеджер сеть->механизмы для типа механизма
+     */
     public Map<UUID, List<INetworkElement>> getMechsByNetwork() {return registryMechsByNetwork.get(this).getMechanismByNetwork();}
+    /**
+     * Получить холдер инвентаря для типа механизма
+     */
+    public MechanismHolder getMechanismHolder(Mech mechanism) {
+        return registryMechanismHolder.get(this).getHolder(mechanism);
+    }
 }
