@@ -26,7 +26,13 @@ public class MechanismHolder implements InventoryHolder {
     public MechanismHolder(Mech mechanism, MechanismType mechanismType, int size, String glif, List<Integer> activeSlots) {
         this.mechanism = mechanism;
         this.mechanismType = mechanismType;
-        this.inventory = Bukkit.createInventory(this, size, glif);
+        if(mechanismType == MechanismType.BARRIER) {
+            this.inventory = BarrierMenuFactory.create(this, size, glif);
+        }
+        else {
+            this.inventory = Bukkit.createInventory(this, size, glif);
+        }
+
         this.size = size;
         this.activeSlots = activeSlots;
         updateEnergyBar();
@@ -37,7 +43,7 @@ public class MechanismHolder implements InventoryHolder {
     public Inventory getInventory() {
         return inventory;
     }
-//    //TODO: Тикать, если не полный бак
+
     public void updateEnergyBar() {
         int currentEnergy = mechanism.getCurrentEnergy();
         int maxEnergy = mechanism.getMaxEnergyStorage();
@@ -69,7 +75,7 @@ public class MechanismHolder implements InventoryHolder {
      */
     public int findTargetSlot(Inventory top) {
 
-        if(activeSlots ==null) return -1;
+        if(activeSlots == null) return -1;
         for (int slot : activeSlots) {
             ItemStack cur = top.getItem(slot);
             if (cur == null || cur.getType().isAir()) return slot;
@@ -83,7 +89,7 @@ public class MechanismHolder implements InventoryHolder {
     public boolean isBlocked(int slot) {
         // пример: заблокировать ВСЕ слоты верхнего инвентаря
         // return true;
-        if(activeSlots ==null) return true;
+        if(activeSlots == null) return true;
         for (int i : activeSlots) {
             if (slot == i) return false;
         }
@@ -98,4 +104,6 @@ public class MechanismHolder implements InventoryHolder {
         return mechanism.getLocation();
     }
     public MechanismType getMechanismType() { return mechanismType; }
+
+    public int getSize(){return size;}
 }

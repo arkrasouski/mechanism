@@ -368,7 +368,11 @@ public class NewMechanismListener implements Listener {
     @EventHandler
     public void onInteractInventory(PlayerInteractEvent e) {
         // Проверяем, что это ПКМ по блоку
-        if (e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Player player = e.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK ||
+                player.isSneaking() ||
+                item.getType() == Material.STICK) return;
 
         Block block = e.getClickedBlock();
         if (block == null) return;
@@ -382,8 +386,6 @@ public class NewMechanismListener implements Listener {
         if (element == null) return;
         if (element instanceof Mech mechanism) {
             e.setCancelled(true);
-
-            Player player = e.getPlayer();
 
             MechanismHolder holder = mechanismType.getMechanismHolder(mechanism);
             holder.updateEnergyBar();
@@ -399,9 +401,9 @@ public class NewMechanismListener implements Listener {
             }
 
             //Если хранилище - восстанавливаем предметы из PDC
-            if (block.getType() == Material.DROPPER || block.getType() == Material.HOPPER) {
-                MechanismStorageUtil.loadItems(tileState, gui, key);
-            }
+//            if (block.getType() == Material.DROPPER || block.getType() == Material.HOPPER) {
+//                MechanismStorageUtil.loadItems(tileState, gui, key);
+//            }
 
             player.openInventory(gui);
         }
@@ -424,20 +426,36 @@ public class NewMechanismListener implements Listener {
     public void onClose(InventoryCloseEvent e) {
         if (!(e.getView().getTopInventory().getHolder() instanceof MechanismHolder holder)) return;
 
-        BlockState blockState = holder.getLocation().getBlock().getState();
-        if (blockState instanceof TileState tile) {
-            MechanismStorageUtil.saveItems(tile, e.getView().getTopInventory(), key);
-        }
+//        BlockState blockState = holder.getLocation().getBlock().getState();
+//        if (blockState instanceof TileState tile) {
+//            MechanismStorageUtil.saveItems(tile, e.getView().getTopInventory(), key);
+//        }
 
         Player player = (Player) e.getPlayer();
         openedInventories.remove(player);
     }
 
+    @EventHandler
+    public void onClickInventory(InventoryClickEvent e){
+        Inventory top = e.getView().getTopInventory();
+        if (!(top.getHolder() instanceof MechanismHolder holder)) return;
+
+        int topSize = top.getSize();
+
+        // Только shift-клик из НИЖНЕГО инвентаря (инвентарь игрока) -> вверх
+        if (e.getRawSlot() >= topSize) return;
+
+        int slot = e.getSlot();
+
+        if(holder.isBlocked(slot)){
+            e.setCancelled(true);
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onShiftToGenerator(InventoryClickEvent e) {
         Inventory top = e.getView().getTopInventory();
-        if (!(top.getHolder() instanceof GeneratorHolder holder)) return;
-
+        if (!(top.getHolder() instanceof MechanismHolder holder)) return;
         // Только shift-перенос
         if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) return;
         Location loc = holder.getLocation();
@@ -447,8 +465,9 @@ public class NewMechanismListener implements Listener {
         if (mechanismType == null) return;
         MechanismManager manager = mechanismType.getMechanismManager();
 
-        Generator generator = (Generator) manager.getMechanism(block);
-        if (generator == null) return;
+
+        INetworkElement mechanism = manager.getMechanism(block);
+        if (mechanism == null) return;
         int topSize = top.getSize();
 
         // Только shift-клик из НИЖНЕГО инвентаря (инвентарь игрока) -> вверх

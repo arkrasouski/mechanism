@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.example.artyom.mechanism.IMechanismManager;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.inventories.BarrierHolder;
 import org.example.artyom.mechanism.inventories.GeneratorHolder;
 import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.items.BaseItem;
@@ -104,6 +105,7 @@ public enum MechanismType  {
         registryMechanismManager.put(BARRIER, Mechanism::getBarrierManager);
 
         registryMechanismHolder.put(GENERATOR, GeneratorHolder::new);
+        registryMechanismHolder.put(BARRIER, BarrierHolder::new);
     }
 
     private final Material material;
