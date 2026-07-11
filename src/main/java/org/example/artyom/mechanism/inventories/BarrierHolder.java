@@ -15,7 +15,12 @@ public class BarrierHolder extends MechanismHolder{
         this.screen = BarrierActionInventory.MAIN_MENU;
     }
 
+
     public int getPage() {
         return page;
+    }
+
+    public BarrierActionInventory getScreen() {
+        return screen;
     }
 }

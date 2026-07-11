@@ -1,64 +1,36 @@
 package org.example.artyom.mechanism.listeners;
-
-import org.bukkit.ChatColor;
-import org.bukkit.block.Block;
+import org.apache.commons.logging.Log;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.example.artyom.mechanism.mechanism.MechanismManager;
-import org.example.artyom.mechanism.mechanism.barrier.Barrier;
+
+import org.bukkit.event.inventory.InventoryClickEvent;
+
+import org.bukkit.inventory.Inventory;
+import org.example.artyom.mechanism.inventories.BarrierActionInventory;
+import org.example.artyom.mechanism.inventories.BarrierHolder;
+import org.example.artyom.mechanism.inventories.BarrierMenuFactory;
+import org.example.artyom.mechanism.utils.LogUtil;
 
 
 public class BarrierListener implements Listener {
 
-    private final MechanismManager barrierManager;
-
-    public BarrierListener(MechanismManager barrierManager){
-        this.barrierManager = barrierManager;
-    }
-
     @EventHandler
-    public void onInteractInfo(PlayerInteractEvent event) {
-        // Проверяем, что это ПКМ по блоку
-        Player player = event.getPlayer();
-        if (!(event.getAction() == Action.RIGHT_CLICK_BLOCK && player.isSneaking())) return;
-        Block block = event.getClickedBlock();
-        if (block == null) return;
-
-        // Проверяем, является ли блок генератором через generatorManager
-        if(!barrierManager.isMechanism(block)) return;
-
-        Barrier barrier = (Barrier) barrierManager.getMechanism(block);
-        if (barrier == null) return;
+    public void onClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof BarrierHolder holder)) return;
 
         event.setCancelled(true);
+        Player player = (Player) event.getWhoClicked();
 
-        writeBarrierInfoToPlayer(player, barrier);
-    }
+        int slot = event.getRawSlot();
+        LogUtil.warn(slot + "слот");
+        if (holder.getScreen() == BarrierActionInventory.MAIN_MENU && slot == 14) {
+           Inventory inv = BarrierMenuFactory.fillPageContent(Bukkit.createInventory(holder, holder.getSize(), holder.getGlif()), BarrierActionInventory.PLAYER_LIST, 1);
+           holder.setInventory(inv);
 
-    private void writeBarrierInfoToPlayer(Player player, Barrier barrier) {
-        int maxEnergyStorage = barrier.getMaxEnergyStorage();
-        int currentEnergy = barrier.getCurrentEnergy();
+           player.openInventory(inv);
+        }
 
-        player.sendMessage(ChatColor.YELLOW + "⚡ Барьер ⚡");
-        player.sendMessage(ChatColor.GRAY + "  Энергия: " + formatEnergy(currentEnergy, maxEnergyStorage));
-        player.sendMessage(ChatColor.GRAY + "  Статус: " + (barrier.isWorking() ? "§aАктивен" : "§cНеактивен"));
-    }
-
-    /**
-     * Форматирует энергию для красивого отображения
-     */
-    private String formatEnergy(int current, int max) {
-        double percent = (double) current / max * 100;
-        String color;
-
-        if (percent >= 75) color = "§a";
-        else if (percent >= 50) color = "§e";
-        else if (percent >= 25) color = "§6";
-        else color = "§c";
-
-        return color + current + "§7/§f" + max + " §7(" + String.format("%.1f", percent) + "%)";
     }
 }

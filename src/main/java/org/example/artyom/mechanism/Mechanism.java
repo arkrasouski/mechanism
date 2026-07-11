@@ -35,7 +35,7 @@ public final class Mechanism extends JavaPlugin {
 
     //private DatabaseManager databaseManager;
     private DatabaseConnectionPool pool;
-    private TransactionManager transactionManager;
+    private static TransactionManager transactionManager;
     private NetworkRepository networkRepository;
     private MechanismRepository mechanismRepository;
 
@@ -104,6 +104,7 @@ public final class Mechanism extends JavaPlugin {
                 barriersByNetwork));
 
         //listeners
+        //Обработка механизмов
         Bukkit.getPluginManager().registerEvents(
                 new NewMechanismListener(this,
                                             networkSystems,
@@ -113,11 +114,21 @@ public final class Mechanism extends JavaPlugin {
                                             openedInventories
                         ), this
         );
-
+        //Обновление чанков
         Bukkit.getPluginManager().registerEvents(
                 new ChunkListener(transactionManager, mechanismRepository, networkSystems, processedChunks),
                 this
         );
+        //Входы игрока
+        Bukkit.getPluginManager().registerEvents(
+                new PlayerListener(transactionManager), this
+        );
+
+        //Обработка всех экранов барьеров
+        Bukkit.getPluginManager().registerEvents(
+                new BarrierListener(), this
+        );
+
         //Восстановление из бд механизмов в прогруженных чанках
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
@@ -199,7 +210,9 @@ public final class Mechanism extends JavaPlugin {
 
         LogUtil.info("NetworkSystems disabled!");
     }
-
+    public static TransactionManager getTransactionManager(){
+        return transactionManager;
+    }
     // Getters для Repository'ев
     public NetworkRepository getNetworkRepository() { return networkRepository; }
 
@@ -216,6 +229,7 @@ public final class Mechanism extends JavaPlugin {
     public static Map<UUID, List<INetworkElement>> getGeneratorsByNetwork() {return generatorsByNetwork;}
     public static Map<UUID, List<INetworkElement>> getCablesByNetwork() {return cablesByNetwork;}
     public static Map<UUID, List<INetworkElement>> getBarriersByNetwork() {return barriersByNetwork;}
+
 
     // Шедулеры
     private void startGenerationTask() {

@@ -388,7 +388,6 @@ public class NewMechanismListener implements Listener {
             e.setCancelled(true);
 
             MechanismHolder holder = mechanismType.getMechanismHolder(mechanism);
-            holder.updateEnergyBar();
 
             openedInventories.put(player, holder);
 
@@ -415,8 +414,11 @@ public class NewMechanismListener implements Listener {
      */
     @EventHandler
     public void onOpen(InventoryOpenEvent e) {
-        if (!(e.getInventory().getHolder() instanceof MechanismHolder h)) return;
+        if (!(e.getInventory().getHolder() instanceof MechanismHolder holder)) return;
         //guiManager.addViewer(h.getLocation(), e.getPlayer().getUniqueId());
+        Player player = (Player) e.getPlayer();
+
+        openedInventories.put(player, holder);
     }
 
     /**

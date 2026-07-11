@@ -17,15 +17,16 @@ import java.util.List;
 public class MechanismHolder implements InventoryHolder {
 
     private final Mech mechanism;
-    private final Inventory inventory;        // сюда положим созданный GUI
+    private Inventory inventory;        // сюда положим созданный GUI
     private final MechanismType mechanismType;
-
+    private final String glif;
     private final int size; //размер инвентаря
     private final List<Integer> activeSlots; //номера активных слотов
 
     public MechanismHolder(Mech mechanism, MechanismType mechanismType, int size, String glif, List<Integer> activeSlots) {
         this.mechanism = mechanism;
         this.mechanismType = mechanismType;
+        this.glif = glif;
         if(mechanismType == MechanismType.BARRIER) {
             this.inventory = BarrierMenuFactory.create(this, size, glif);
         }
@@ -105,5 +106,10 @@ public class MechanismHolder implements InventoryHolder {
     }
     public MechanismType getMechanismType() { return mechanismType; }
 
+    public void setInventory(Inventory inventory){
+        this.inventory = inventory;
+    }
     public int getSize(){return size;}
+
+    public String getGlif(){return glif;}
 }

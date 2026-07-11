@@ -5,39 +5,42 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.database.PlayerRepository;
+import org.example.artyom.mechanism.database.TransactionManager;
+import org.example.artyom.mechanism.records.PlayerData;
 import org.example.artyom.mechanism.utils.ItemsUtil;
+import org.example.artyom.mechanism.utils.LogUtil;
 
+import java.sql.SQLException;
 import java.util.List;
 
 public class BarrierMenuFactory {
 
     public static Inventory create(MechanismHolder holder, int size, String glif) {
         Inventory inv = Bukkit.createInventory(holder, size, glif);
-
+        BarrierHolder barrierHolder = (BarrierHolder) holder;
         fillBase(inv, holder);
-        fillPageContent(inv, BarrierActionInventory.MAIN_MENU);
         //fillNavigation(inv, holder.getPage());
 
-        return inv;
+        return fillPageContent(inv, BarrierActionInventory.MAIN_MENU, barrierHolder.getPage());
     }
 
     private static void fillBase(Inventory inv, MechanismHolder holder) {
         // фон, инфо, декоративные элементы
     }
 
-    private static void fillPageContent(Inventory inv, BarrierActionInventory screen) {
+    public static Inventory fillPageContent(Inventory inv, BarrierActionInventory screen, int page) {
         switch (screen) {
             case MAIN_MENU:
-                fillMainMenu(inv);
-                break;
+                return fillMainMenu(inv);
             case PLAYER_LIST:
-
-                break;
+                return fillPlayerList(inv, page);
             case PLAYER_SETTINGS:
 
-                break;
+                return null;
             default:
-                fillMainMenu(inv);
+                return fillMainMenu(inv);
         }
     }
 
@@ -47,7 +50,7 @@ public class BarrierMenuFactory {
 //        inv.setItem(35, nextButton(page));
     }
 
-    private static void fillMainMenu(Inventory inv) { //флаг чтобы отличать первый раз открываем или нет
+    private static Inventory fillMainMenu(Inventory inv) { //флаг чтобы отличать первый раз открываем или нет
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 9; j++) {
                 if (j < 4) {
@@ -64,5 +67,29 @@ public class BarrierMenuFactory {
         inv.setItem(14, ItemsUtil.create(Material.GREEN_WOOL, 1,
                 "Добавить игрока",
                 List.of("Нажмите, чтобы добавить игрока в приват")));
+        return inv;
+    }
+
+    private static Inventory fillPlayerList(Inventory inv, int page) {
+
+        TransactionManager transactionManager = Mechanism.getTransactionManager();
+        try {
+            List<PlayerData> playerList = transactionManager.execute((connection -> PlayerRepository.getPlayers(connection, page)));
+            for (int i = 0; i < playerList.size(); i++) {
+                PlayerData playerData = playerList.get(i);
+                LogUtil.warn(playerData.name());
+                ItemStack item = ItemsUtil.create(Material.LIGHT_BLUE_WOOL,
+                        1,
+                        playerData.name(),
+                        List.of("Добавить"));
+                inv.setItem(i, item);
+            }
+            return inv;
+        }
+        catch (SQLException e) {
+            LogUtil.error("Ошибка получения списка игроков из бд", e);
+            e.printStackTrace();
+        }
+        return null;
     }
 }
