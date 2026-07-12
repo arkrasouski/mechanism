@@ -53,7 +53,6 @@ public class MechanismHolder implements InventoryHolder {
         int start = size - 9, end = size - 1;
         int segments = end - start + 1;
         int filled = (int) percent * 9 / 100;
-        LogUtil.warn(percent + " / " + currentEnergy + " / " + maxEnergy + " / " + filled);
         for (int i = 0; i < segments; i++) {
             int slot = start + i;
             if (i >= filled) {

@@ -39,7 +39,7 @@ public class PlayerRepository {
     }
 
     public static List<PlayerData> getPlayers(Connection connection, int page) throws SQLException {
-        final int LIMIT = 18;
+        final int LIMIT = 14;
         int offset = (page - 1) * LIMIT;
 
         String sql = String.format("""

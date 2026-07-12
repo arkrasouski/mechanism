@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.inventories.BarrierActionInventory;
 import org.example.artyom.mechanism.inventories.BarrierHolder;
 import org.example.artyom.mechanism.inventories.BarrierMenuFactory;
@@ -24,12 +25,43 @@ public class BarrierListener implements Listener {
         Player player = (Player) event.getWhoClicked();
 
         int slot = event.getRawSlot();
-        LogUtil.warn(slot + "слот");
-        if (holder.getScreen() == BarrierActionInventory.MAIN_MENU && slot == 14) {
-           Inventory inv = BarrierMenuFactory.fillPageContent(Bukkit.createInventory(holder, holder.getSize(), holder.getGlif()), BarrierActionInventory.PLAYER_LIST, 1);
+        if (holder.getScreen() == BarrierActionInventory.MAIN_MENU && slot == 14) {;
+           Inventory inv = BarrierMenuFactory.fillPageContent(Bukkit.createInventory(holder, holder.getSize(),
+                                                                holder.getGlif()),
+                                                                BarrierActionInventory.PLAYER_LIST,
+                                                                1);
            holder.setInventory(inv);
-
+           holder.updateEnergyBar();
+           holder.setScreen(BarrierActionInventory.PLAYER_LIST);
            player.openInventory(inv);
+        }
+
+        if (holder.getScreen() == BarrierActionInventory.PLAYER_LIST && slot == 26) {
+            ItemStack item = event.getCurrentItem();
+            if (!item.hasItemMeta()) return;
+            int page = holder.getPage() + 1;
+            holder.setPage(page);
+            Inventory inv = BarrierMenuFactory.fillPageContent(Bukkit.createInventory(holder, holder.getSize(),
+                                                                holder.getGlif()),
+                                                                BarrierActionInventory.PLAYER_LIST,
+                                                                page);
+            holder.setInventory(inv);
+            holder.updateEnergyBar();
+            player.openInventory(inv);
+        }
+
+        if (holder.getScreen() == BarrierActionInventory.PLAYER_LIST && slot == 18) {
+            ItemStack item = event.getCurrentItem();
+            if (!item.hasItemMeta()) return;
+            int page = holder.getPage() - 1;
+            holder.setPage(page);
+            Inventory inv = BarrierMenuFactory.fillPageContent(Bukkit.createInventory(holder, holder.getSize(),
+                            holder.getGlif()),
+                    BarrierActionInventory.PLAYER_LIST,
+                    page);
+            holder.setInventory(inv);
+            holder.updateEnergyBar();
+            player.openInventory(inv);
         }
 
     }

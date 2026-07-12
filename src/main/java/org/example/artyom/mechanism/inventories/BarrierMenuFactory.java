@@ -21,7 +21,6 @@ public class BarrierMenuFactory {
         Inventory inv = Bukkit.createInventory(holder, size, glif);
         BarrierHolder barrierHolder = (BarrierHolder) holder;
         fillBase(inv, holder);
-        //fillNavigation(inv, holder.getPage());
 
         return fillPageContent(inv, BarrierActionInventory.MAIN_MENU, barrierHolder.getPage());
     }
@@ -44,10 +43,15 @@ public class BarrierMenuFactory {
         }
     }
 
-    private static void fillNavigation(Inventory inv, int page) {
-//        inv.setItem(27, previousButton(page));
-//        inv.setItem(31, closeButton());
-//        inv.setItem(35, nextButton(page));
+    private static void fillNavigation(Inventory inv, int page, int playersSize) {
+        if(page > 1) {
+            inv.setItem(18, ItemsUtil.create(Material.YELLOW_WOOL, 1, String.format("Страница %d", page-1), List.of("Нажмите, чтобы", "Перелистнуть назад")));
+        }
+        inv.setItem(22, ItemsUtil.create(Material.PAPER, 1, "Страница № " + page));
+
+        if(playersSize == 14) {
+            inv.setItem(26, ItemsUtil.create(Material.ORANGE_WOOL, 1, String.format("Страница %d", page+1), List.of("Нажмите, чтобы", "Перелистнуть вперед")));
+        }
     }
 
     private static Inventory fillMainMenu(Inventory inv) { //флаг чтобы отличать первый раз открываем или нет
@@ -75,15 +79,34 @@ public class BarrierMenuFactory {
         TransactionManager transactionManager = Mechanism.getTransactionManager();
         try {
             List<PlayerData> playerList = transactionManager.execute((connection -> PlayerRepository.getPlayers(connection, page)));
-            for (int i = 0; i < playerList.size(); i++) {
-                PlayerData playerData = playerList.get(i);
-                LogUtil.warn(playerData.name());
-                ItemStack item = ItemsUtil.create(Material.LIGHT_BLUE_WOOL,
-                        1,
-                        playerData.name(),
-                        List.of("Добавить"));
-                inv.setItem(i, item);
+            int playersSize = playerList.size();
+            int ROWS = 2;
+            int COLUMNS = 7;
+            for (int i = 0; i < ROWS; i++) {
+//                if (playersSize < COLUMNS * i) break;
+                for (int j = 0; j < COLUMNS; j++) {
+
+                        int playerIndex = j + COLUMNS * i;
+                        if (playerIndex >= playersSize) {
+                            // Если игроков больше нет, можно выйти из обоих циклов
+                            // или просто прервать внутренний цикл
+                            break;
+                        }
+                        LogUtil.warn(playerIndex + " " + i + " " + j + "/" + playersSize);
+                        // Теперь расчёт слота: колонка j на строке i
+                        int slot = j + (9 * i);
+
+                        PlayerData playerData = playerList.get(playerIndex);
+                        LogUtil.warn(playerData.name());
+                        ItemStack item = ItemsUtil.create(Material.LIGHT_BLUE_WOOL,
+                                1,
+                                playerData.name(),
+                                List.of("Добавить"));
+                        inv.setItem(slot, item);
+                    }
+
             }
+            fillNavigation(inv, page, playersSize);
             return inv;
         }
         catch (SQLException e) {

@@ -6,8 +6,8 @@ import org.example.artyom.mechanism.mechanism.base.Mech;
 import java.util.List;
 
 public class BarrierHolder extends MechanismHolder{
-    private final int page;
-    private final BarrierActionInventory screen;
+    private int page;
+    private BarrierActionInventory screen;
 
     public BarrierHolder(Mech mechanism) {
         super(mechanism, MechanismType.BARRIER, 36, "barrier_glif", null);
@@ -20,7 +20,15 @@ public class BarrierHolder extends MechanismHolder{
         return page;
     }
 
+    public void setPage(int page){
+        this.page = page;
+    }
+
     public BarrierActionInventory getScreen() {
         return screen;
+    }
+
+    public void setScreen(BarrierActionInventory screen) {
+        this.screen = screen;
     }
 }

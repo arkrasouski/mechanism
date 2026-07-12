@@ -289,8 +289,6 @@ public final class Mechanism extends JavaPlugin {
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             openedInventories.forEach(
                     (player, mechanismHolder) -> {
-
-                            LogUtil.warn("Тикаю");
                             mechanismHolder.updateEnergyBar();
                     }
             );
