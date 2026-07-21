@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NetworkManager {
     private final UUID networkId;
     private final World world;
+    private UUID owner;
+    private int password;
     private final Map<Location, INetworkElement> elements = new ConcurrentHashMap<>();
 
     public NetworkManager(UUID networkId, World world) {
@@ -99,5 +101,19 @@ public class NetworkManager {
             }
         }
         return neighbors;
+    }
+
+    /**
+     * Получить владельца сети
+     */
+    public UUID getOwner(){
+        return owner;
+    }
+
+    /**
+     * Получить пароль сети
+     */
+    public int getPassword() {
+        return password;
     }
 }

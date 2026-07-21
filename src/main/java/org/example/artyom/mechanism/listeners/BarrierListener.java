@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.example.artyom.mechanism.inventories.BarrierActionInventory;
 import org.example.artyom.mechanism.inventories.BarrierHolder;
 import org.example.artyom.mechanism.inventories.BarrierMenuFactory;
@@ -25,6 +26,30 @@ public class BarrierListener implements Listener {
         Player player = (Player) event.getWhoClicked();
 
         int slot = event.getRawSlot();
+
+        //Нажимаю на изменение цифры пароля
+        if (holder.getScreen() == BarrierActionInventory.SET_PASSWORD && slot >= 11 && slot <= 15) {
+            ItemStack item = event.getCurrentItem();
+            ItemMeta meta = item.getItemMeta();
+            int num = Integer.parseInt(meta.getDisplayName());
+            int newNum = ++num > 9 ? 0 : num;
+            meta.setDisplayName(String.valueOf(newNum));
+            item.setItemMeta(meta);
+        }
+
+        //Нажимаю сохранить пароль
+        if (holder.getScreen() == BarrierActionInventory.SET_PASSWORD && slot == 22) {
+            String password = "";
+            for(int i = 11; i <= 15; i++){
+                ItemStack item = event.getClickedInventory().getItem(i);
+                ItemMeta meta = item.getItemMeta();
+                password += meta.getDisplayName();
+            }
+
+
+            player.sendMessage("Пароль: " + password);
+        }
+
         if (holder.getScreen() == BarrierActionInventory.MAIN_MENU && slot == 14) {;
            Inventory inv = BarrierMenuFactory.fillPageContent(Bukkit.createInventory(holder, holder.getSize(),
                                                                 holder.getGlif()),

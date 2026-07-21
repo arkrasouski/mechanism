@@ -79,7 +79,7 @@ public class NewMechanismListener implements Listener {
 
         MechanismType mechanismType = ListenerUtil.getMechanismType(plugin, item);
         if (mechanismType == null) return;
-        player.sendMessage("lol");
+
         MechanismManager manager = mechanismType.getMechanismManager();
 
         if (!ListenerUtil.canPlaceMechanism(block, player)) {
@@ -128,52 +128,57 @@ public class NewMechanismListener implements Listener {
                 elements.add(mechanism);
                 mechanismMap.put(networkId, elements);
                 player.sendMessage("Создаю новую сеть!");
+
+                if(mechanismType == MechanismType.BARRIER) {
+                    player.sendMessage("Создам нового владельца");
+
+                }
             }
             //Здесь склейка сетей
             else {
                 //Может не вернуть ничего если пустые connectedNetworks
-                NetworkManager primaryNetwork = connectedNetworks.stream()
-                        .max(Comparator.comparingInt(n -> n.getElements().size()))
-                        .orElseThrow();
-
-                List<NetworkManager> secondaryNetworks = connectedNetworks.stream()
-                        .filter(n -> n != primaryNetwork)
-                        .toList();
-                UUID primaryId = primaryNetwork.getNetworkId();
-                List<UUID> secondaryIds = secondaryNetworks.stream().map(NetworkManager::getNetworkId).toList();
-                mechanism.setNetworkId(primaryId);
-
-                transactionManager.execute(connection -> {
-                    mechanismRepository.addMechanism(connection, mechanism);
-                    mechanismRepository.batchUpdateMechanismNetworks(connection, primaryId, secondaryIds);
-                    networkRepository.deleteSecondaryNetworks(connection, secondaryIds);
-                    return true;
-                });
-                primaryNetwork.addElement(mechanism);
-
-                for (NetworkManager secondary : secondaryNetworks) {
-                    for (INetworkElement element : secondary.getElements()) {
-                        element.setNetworkId(primaryId);
-                        primaryNetwork.addElement(element);
-
-                        MechanismType type = element.getMechanismType();
-                        Map<UUID, List<INetworkElement>> targetMap = type.getMechsByNetwork();
-                        targetMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
-                                .add(element);
-
-
-                    }
-                    networkSystems.removeNetworkManager(secondary);
-                    for(MechanismType type : MechanismType.values()){
-                        type.getMechsByNetwork().remove(secondary.getNetworkId());
-                    }
-                }
-
-                mechanismMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
-                        .add(mechanism);
-
-                manager.registerMechanism(mechanism, loc);
-                player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
+//                NetworkManager primaryNetwork = connectedNetworks.stream()
+//                        .max(Comparator.comparingInt(n -> n.getElements().size()))
+//                        .orElseThrow();
+//
+//                List<NetworkManager> secondaryNetworks = connectedNetworks.stream()
+//                        .filter(n -> n != primaryNetwork)
+//                        .toList();
+//                UUID primaryId = primaryNetwork.getNetworkId();
+//                List<UUID> secondaryIds = secondaryNetworks.stream().map(NetworkManager::getNetworkId).toList();
+//                mechanism.setNetworkId(primaryId);
+//
+//                transactionManager.execute(connection -> {
+//                    mechanismRepository.addMechanism(connection, mechanism);
+//                    mechanismRepository.batchUpdateMechanismNetworks(connection, primaryId, secondaryIds);
+//                    networkRepository.deleteSecondaryNetworks(connection, secondaryIds);
+//                    return true;
+//                });
+//                primaryNetwork.addElement(mechanism);
+//
+//                for (NetworkManager secondary : secondaryNetworks) {
+//                    for (INetworkElement element : secondary.getElements()) {
+//                        element.setNetworkId(primaryId);
+//                        primaryNetwork.addElement(element);
+//
+//                        MechanismType type = element.getMechanismType();
+//                        Map<UUID, List<INetworkElement>> targetMap = type.getMechsByNetwork();
+//                        targetMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
+//                                .add(element);
+//
+//
+//                    }
+//                    networkSystems.removeNetworkManager(secondary);
+//                    for(MechanismType type : MechanismType.values()){
+//                        type.getMechsByNetwork().remove(secondary.getNetworkId());
+//                    }
+//                }
+//
+//                mechanismMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
+//                        .add(mechanism);
+//
+//                manager.registerMechanism(mechanism, loc);
+//                player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
             }
             // ШАГ 5: Сообщение игроку
             player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
@@ -386,7 +391,6 @@ public class NewMechanismListener implements Listener {
         if (element == null) return;
         if (element instanceof Mech mechanism) {
             e.setCancelled(true);
-
             MechanismHolder holder = mechanismType.getMechanismHolder(mechanism);
 
             openedInventories.put(player, holder);

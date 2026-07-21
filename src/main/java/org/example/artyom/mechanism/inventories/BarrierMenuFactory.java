@@ -21,8 +21,7 @@ public class BarrierMenuFactory {
         Inventory inv = Bukkit.createInventory(holder, size, glif);
         BarrierHolder barrierHolder = (BarrierHolder) holder;
         fillBase(inv, holder);
-
-        return fillPageContent(inv, BarrierActionInventory.MAIN_MENU, barrierHolder.getPage());
+        return fillPageContent(inv, barrierHolder.getScreen(), barrierHolder.getPage());
     }
 
     private static void fillBase(Inventory inv, MechanismHolder holder) {
@@ -31,12 +30,13 @@ public class BarrierMenuFactory {
 
     public static Inventory fillPageContent(Inventory inv, BarrierActionInventory screen, int page) {
         switch (screen) {
+            case SET_PASSWORD:
+                return fillSetPassword(inv);
             case MAIN_MENU:
                 return fillMainMenu(inv);
             case PLAYER_LIST:
                 return fillPlayerList(inv, page);
             case PLAYER_SETTINGS:
-
                 return null;
             default:
                 return fillMainMenu(inv);
@@ -114,5 +114,22 @@ public class BarrierMenuFactory {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private static Inventory fillSetPassword(Inventory inv){
+        ItemStack password_item = ItemsUtil.create(Material.ORANGE_WOOL,
+                1,
+                "1",
+                List.of("Нажмите, чтобы", "изменить цифру"));
+        for(int i = 11; i <= 15; i++){
+            inv.setItem(i, password_item);
+        }
+
+        ItemStack accept_item = ItemsUtil.create(Material.LIME_STAINED_GLASS_PANE,
+                1,
+                "Сохранить пароль");
+        inv.setItem(22, accept_item);
+
+        return inv;
     }
 }
