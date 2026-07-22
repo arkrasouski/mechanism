@@ -126,7 +126,7 @@ public final class Mechanism extends JavaPlugin {
 
         //Обработка всех экранов барьеров
         Bukkit.getPluginManager().registerEvents(
-                new BarrierListener(), this
+                new BarrierListener(transactionManager, networkRepository), this
         );
 
         //Восстановление из бд механизмов в прогруженных чанках

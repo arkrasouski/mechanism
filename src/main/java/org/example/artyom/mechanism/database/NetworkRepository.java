@@ -124,4 +124,24 @@ public class NetworkRepository {
                     return updated > 0;
                 }
     }
+
+    /**
+     * Установить пароль и владельца сети
+     */
+    public boolean updateNetwork(Connection connection, UUID networkId, UUID playerId, int password) throws SQLException{
+        String sql = "UPDATE networks " +
+                     "SET owner = ?," +
+                          "password = ?" +
+                     "WHERE network_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerId.toString());
+            stmt.setInt(2, password);
+            stmt.setString(3, networkId.toString());
+            return stmt.executeUpdate() > 0;
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+            throw e;
+        }
+    }
 }

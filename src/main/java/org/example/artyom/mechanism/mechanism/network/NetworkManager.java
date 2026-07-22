@@ -11,8 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NetworkManager {
     private final UUID networkId;
     private final World world;
-    private UUID owner;
-    private int password;
+    private UUID owner = null;
+    private int password = -1;
     private final Map<Location, INetworkElement> elements = new ConcurrentHashMap<>();
 
     public NetworkManager(UUID networkId, World world) {
@@ -111,9 +111,23 @@ public class NetworkManager {
     }
 
     /**
+     * Установить владельца
+     */
+    public void setOwner(UUID owner){
+        this.owner = owner;
+    }
+
+    /**
      * Получить пароль сети
      */
     public int getPassword() {
         return password;
+    }
+
+    /**
+     * Установить пароль
+     */
+    public void setPassword(int password) {
+        this.password = password;
     }
 }

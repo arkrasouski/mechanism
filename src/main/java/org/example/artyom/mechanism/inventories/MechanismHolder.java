@@ -13,6 +13,7 @@ import org.example.artyom.mechanism.utils.LogUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.UUID;
 
 public class MechanismHolder implements InventoryHolder {
 
@@ -107,4 +108,8 @@ public class MechanismHolder implements InventoryHolder {
     public int getSize(){return size;}
 
     public String getGlif(){return glif;}
+
+    public UUID getMechanismNetworkId(){
+        return mechanism.getNetworkId();
+    }
 }

@@ -10,13 +10,28 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.database.NetworkRepository;
+import org.example.artyom.mechanism.database.TransactionManager;
 import org.example.artyom.mechanism.inventories.BarrierActionInventory;
 import org.example.artyom.mechanism.inventories.BarrierHolder;
 import org.example.artyom.mechanism.inventories.BarrierMenuFactory;
+import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.utils.LogUtil;
+
+import java.sql.SQLException;
+import java.util.UUID;
 
 
 public class BarrierListener implements Listener {
+
+    private final TransactionManager transactionManager;
+    private final NetworkRepository networkRepository;
+
+    public BarrierListener(TransactionManager transactionManager, NetworkRepository networkRepository) {
+        this.transactionManager = transactionManager;
+        this.networkRepository = networkRepository;
+    }
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
@@ -39,14 +54,29 @@ public class BarrierListener implements Listener {
 
         //Нажимаю сохранить пароль
         if (holder.getScreen() == BarrierActionInventory.SET_PASSWORD && slot == 22) {
-            String password = "";
+            StringBuilder password = new StringBuilder();
             for(int i = 11; i <= 15; i++){
                 ItemStack item = event.getClickedInventory().getItem(i);
                 ItemMeta meta = item.getItemMeta();
-                password += meta.getDisplayName();
+                password.append(meta.getDisplayName());
             }
 
 
+            UUID networkId = holder.getMechanismNetworkId();
+            NetworkManager network = Mechanism.getNetworkSystems().getNetworkManager(networkId);
+
+            int pass = Integer.parseInt(password.toString());
+            UUID playerId = player.getUniqueId();
+
+            try {
+                transactionManager.execute((connection -> networkRepository.updateNetwork(connection, networkId, playerId, pass)));
+            } catch (SQLException e) {
+                LogUtil.error("Не удалось сохранить пароль и владельца сети", e);
+                throw new RuntimeException(e);
+            }
+
+            network.setPassword(pass);
+            network.setOwner(playerId);
             player.sendMessage("Пароль: " + password);
         }
 

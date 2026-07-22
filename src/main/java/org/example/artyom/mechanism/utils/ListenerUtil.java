@@ -55,11 +55,16 @@ public class ListenerUtil {
         UUID networkId = netElem.getNetworkId();
 
         NetworkManager netManager = getNetworkSystems().getNetworkManager(networkId);
+
+        UUID ownerId = netManager.getOwner();
+        int password = netManager.getPassword();
+
         player.sendMessage("§6=== Информация о сети ===");
         player.sendMessage("§7ID сети: §f" + networkId);
         player.sendMessage("§7Локация элемента: §f" + loc);
         player.sendMessage("§7Компонентов: §f" + netManager.getElements().size());
-
+        player.sendMessage("§7Владелец: " + (ownerId == null ? "Нет владельца" : ownerId.toString()));
+        player.sendMessage("§7Пароль: " + (password == -1 ? "Нет пароля" : password));
         // Дополнительная информация (если есть доступ к конкретным множествам)
         if (netElem instanceof IProducer) {
             player.sendMessage("Это генератор!");

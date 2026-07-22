@@ -121,12 +121,7 @@ public class NewMechanismListener implements Listener {
                     mechanismRepository.addMechanism(connection, mechanism);
                     return true;
                 });
-                networkManager.addElement(mechanism);
-                networkSystems.addNetworkManager(networkManager);
-                manager.registerMechanism(mechanism, loc);
-                List<INetworkElement> elements = new ArrayList<>();
-                elements.add(mechanism);
-                mechanismMap.put(networkId, elements);
+                addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
                 player.sendMessage("Создаю новую сеть!");
 
                 if(mechanismType == MechanismType.BARRIER) {
@@ -135,7 +130,18 @@ public class NewMechanismListener implements Listener {
                 }
             }
             //Здесь склейка сетей
-            else {
+            else if (connectedNetworks.size() == 1){
+                NetworkManager networkManager = connectedNetworks.iterator().next();
+                UUID networkId = networkManager.getNetworkId();
+                mechanism.setNetworkId(networkId);
+                transactionManager.execute(connection -> {
+                    mechanismRepository.addMechanism(connection, mechanism);
+                    return true;
+                });
+
+                addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
+                player.sendMessage("Один сосед, перенимаю сеть!");
+            }
                 //Может не вернуть ничего если пустые connectedNetworks
 //                NetworkManager primaryNetwork = connectedNetworks.stream()
 //                        .max(Comparator.comparingInt(n -> n.getElements().size()))
@@ -179,7 +185,7 @@ public class NewMechanismListener implements Listener {
 //
 //                manager.registerMechanism(mechanism, loc);
 //                player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
-            }
+      //      }
             // ШАГ 5: Сообщение игроку
             player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
 
@@ -190,6 +196,22 @@ public class NewMechanismListener implements Listener {
             player.sendMessage("§cОшибка при сохранении механизма");
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Вспомогательная функция привязки механизма к сети и переменным хранения механизма
+     */
+    private void addMechanismToNetwork(NetworkManager networkManager,
+                                       MechanismManager manager,
+                                       Map<UUID, List<INetworkElement>> mechanismMap,
+                                       INetworkElement mechanism
+                                       ){
+        UUID networkId = networkManager.getNetworkId();
+        networkManager.addElement(mechanism);
+        manager.registerMechanism(mechanism, mechanism.getLocation());
+        List<INetworkElement> elements = new ArrayList<>();
+        elements.add(mechanism);
+        mechanismMap.put(networkId, elements);
     }
 
     /**
