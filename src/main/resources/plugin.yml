@@ -12,5 +12,7 @@ commands:
     description: Выдает барьер
   getcable:
     description: Выдает кабель
+  getencoder:
+    description: Выдает шифратор
   monitor:
     description: Выдает информацию о механизмах в памяти

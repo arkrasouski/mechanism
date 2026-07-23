@@ -10,6 +10,7 @@ import org.example.artyom.mechanism.Mechanism;
 
 import org.example.artyom.mechanism.items.BarrierItem;
 import org.example.artyom.mechanism.items.CableItem;
+import org.example.artyom.mechanism.items.EncoderItem;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.jetbrains.annotations.NotNull;
 
@@ -58,6 +59,12 @@ public class MechanismCommands implements CommandExecutor {
             ItemStack item = new CableItem(plugin).createItem(amount);
             return giveItemToPlayer(player, item, "Кабель", amount);
         });
+
+        commands.put("getencoder", ((player, args) -> {
+            int amount = parseAmount(args, 0, 1);
+            ItemStack item = new EncoderItem(plugin).createItem(amount);
+            return giveItemToPlayer(player, item, "Шифратор", amount);
+        }));
     }
 
     @Override

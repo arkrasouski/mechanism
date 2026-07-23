@@ -6,14 +6,17 @@ import org.example.artyom.mechanism.IMechanismManager;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.inventories.BarrierHolder;
 import org.example.artyom.mechanism.inventories.GeneratorHolder;
+import org.example.artyom.mechanism.inventories.EncoderHolder;
 import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.items.CableItem;
 import org.example.artyom.mechanism.items.GeneratorItem;
 import org.example.artyom.mechanism.items.BarrierItem;
+import org.example.artyom.mechanism.items.EncoderItem;
 import org.example.artyom.mechanism.mechanism.barrier.Barrier;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 import org.example.artyom.mechanism.mechanism.cable.Cable;
+import org.example.artyom.mechanism.mechanism.encoder.Encoder;
 import org.example.artyom.mechanism.mechanism.functional_interfaces.*;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
@@ -67,6 +70,17 @@ public enum MechanismType  {
             barrier.setNetworkId(UUID.fromString(rs.getString("network_id")));
             return barrier;
         }
+    },
+    ENCODER(Material.NOTE_BLOCK, "Шифратор", "Супер мега шифратор"){
+        @Override
+        public INetworkElement createFromResultSet(ResultSet rs) throws SQLException {
+            Encoder encoder = new Encoder(
+                    extractLocation(rs),
+                    rs.getInt("current_energy")
+            );
+            encoder.setNetworkId(UUID.fromString(rs.getString("network_id")));
+            return encoder;
+        }
     }
     ;
     private static final Map<MechanismType, IMechanismConstructor> registry = new HashMap<>();
@@ -81,31 +95,26 @@ public enum MechanismType  {
         registry.put(GENERATOR, Generator::new);
         registry.put(CABLE, Cable::new);
         registry.put(BARRIER, Barrier::new);
+        registry.put(ENCODER, Encoder::new);
 
         registryItem.put(GENERATOR, GeneratorItem::new);
         registryItem.put(CABLE, CableItem::new);
         registryItem.put(BARRIER, BarrierItem::new);
+        registryItem.put(ENCODER, EncoderItem::new);
 
         registryMechsByNetwork.put(GENERATOR, Mechanism::getGeneratorsByNetwork);
         registryMechsByNetwork.put(CABLE, Mechanism::getCablesByNetwork);
         registryMechsByNetwork.put(BARRIER, Mechanism::getBarriersByNetwork);
+        registryMechsByNetwork.put(ENCODER, Mechanism::getEncodersByNetwork);
 
-
-//        registryRepository.put(GENERATOR, GeneratorRepository::addGenerator);
-//        registryRepository.put(CABLE, CableRepository::addCable);
-//
-//        registryRepositoryRemover.put(GENERATOR, GeneratorRepository::removeGeneratorsByNetwork);
-//        registryRepositoryRemover.put(CABLE, CableRepository::removeCablesByNetwork);
-//
-//        registryRepositoryMerge.put(GENERATOR, GeneratorRepository::getGeneratorsByNetwork);
-//        registryRepositoryMerge.put(CABLE, CableRepository::getCablesByNetwork);
-//
         registryMechanismManager.put(GENERATOR, Mechanism::getGeneratorManager);
         registryMechanismManager.put(CABLE, Mechanism::getCableManager);
         registryMechanismManager.put(BARRIER, Mechanism::getBarrierManager);
+        registryMechanismManager.put(ENCODER, Mechanism::getEncoderManager);
 
         registryMechanismHolder.put(GENERATOR, GeneratorHolder::new);
         registryMechanismHolder.put(BARRIER, BarrierHolder::new);
+        registryMechanismHolder.put(ENCODER, EncoderHolder::new);
     }
 
     private final Material material;

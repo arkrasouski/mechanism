@@ -1,11 +1,9 @@
 package org.example.artyom.mechanism;
 
-import com.google.common.graph.Network;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.example.artyom.mechanism.commands.MechanismCommands;
 import org.example.artyom.mechanism.commands.Monitoring;
@@ -14,10 +12,8 @@ import org.example.artyom.mechanism.database.*;
 import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.listeners.*;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
-import org.example.artyom.mechanism.mechanism.MechanismType;
 
 import org.example.artyom.mechanism.mechanism.barrier.Barrier;
-import org.example.artyom.mechanism.mechanism.cable.Cable;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
@@ -43,11 +39,12 @@ public final class Mechanism extends JavaPlugin {
     private static MechanismManager generatorManager;
     private static MechanismManager cableManager;
     private static MechanismManager barrierManager;
+    private static MechanismManager encoderManager;
 
-    Map<UUID, NetworkManager> networks = new HashMap<>();
     static Map<UUID, List<INetworkElement>> generatorsByNetwork = new HashMap<>();
     static Map<UUID, List<INetworkElement>> barriersByNetwork = new HashMap<>();
     static Map<UUID, List<INetworkElement>> cablesByNetwork = new HashMap<>();
+    static Map<UUID, List<INetworkElement>> encodersByNetwork = new HashMap<>();
 
     private final Set<ChunkKey> processedChunks = ConcurrentHashMap.newKeySet();
     private final Map<Player, MechanismHolder> openedInventories = new ConcurrentHashMap<>();
@@ -82,9 +79,7 @@ public final class Mechanism extends JavaPlugin {
         generatorManager = new MechanismManager();
         cableManager = new MechanismManager();
         barrierManager = new MechanismManager();
-
-
-
+        encoderManager = new MechanismManager();
         //network
         networkSystems = new NetworkSystems();
 
@@ -93,6 +88,7 @@ public final class Mechanism extends JavaPlugin {
         getCommand("givecell").setExecutor(new MechanismCommands(this));
         getCommand("getbarrier").setExecutor(new MechanismCommands(this));
         getCommand("getcable").setExecutor(new MechanismCommands(this));
+        getCommand("getencoder").setExecutor(new MechanismCommands(this));
 
         getCommand("monitor").setExecutor(new Monitoring(
                 networkSystems,
@@ -225,10 +221,12 @@ public final class Mechanism extends JavaPlugin {
     public static NetworkSystems getNetworkSystems() { return networkSystems; }
     public static MechanismManager getCableManager() { return cableManager; }
     public static MechanismManager getBarrierManager() { return barrierManager; }
+    public static MechanismManager getEncoderManager() { return  encoderManager; }
 
     public static Map<UUID, List<INetworkElement>> getGeneratorsByNetwork() {return generatorsByNetwork;}
     public static Map<UUID, List<INetworkElement>> getCablesByNetwork() {return cablesByNetwork;}
     public static Map<UUID, List<INetworkElement>> getBarriersByNetwork() {return barriersByNetwork;}
+    public static Map<UUID, List<INetworkElement>> getEncodersByNetwork() {return encodersByNetwork;}
 
 
     // Шедулеры

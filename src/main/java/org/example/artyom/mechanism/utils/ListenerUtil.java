@@ -10,9 +10,11 @@ import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
+import org.example.artyom.mechanism.mechanism.barrier.Barrier;
 import org.example.artyom.mechanism.mechanism.base.IConsumer;
 import org.example.artyom.mechanism.mechanism.base.IProducer;
 import org.example.artyom.mechanism.mechanism.base.Mech;
+import org.example.artyom.mechanism.mechanism.encoder.Encoder;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 
@@ -69,8 +71,13 @@ public class ListenerUtil {
         if (netElem instanceof IProducer) {
             player.sendMessage("Это генератор!");
         }
-        else if (netElem instanceof IConsumer){
-            player.sendMessage("Это барьер!");
+        else if (netElem instanceof IConsumer consumer){
+            if(consumer instanceof Barrier) {
+                player.sendMessage("Это барьер!");
+            }
+            else if (consumer instanceof Encoder) {
+                player.sendMessage("Это шифратор!");
+            }
         } else {
             player.sendMessage("Это кабель!");
         }
@@ -78,12 +85,18 @@ public class ListenerUtil {
         int generatorCount = 0;
         int cableCount = 0;
         int barrierCount = 0;
+        int enecoderCount = 0;
         for (INetworkElement elem : netManager.getElements()) {
             if(elem instanceof IProducer) {
                 generatorCount++;
             }
-            else if (elem instanceof IConsumer) {
-                barrierCount++;
+            else if (elem instanceof IConsumer consumer) {
+                if(consumer instanceof Barrier) {
+                    barrierCount++;
+                }
+                else if (consumer instanceof Encoder) {
+                    enecoderCount++;
+                }
             }
             else {
                 cableCount++;
@@ -93,6 +106,7 @@ public class ListenerUtil {
         player.sendMessage("§7Всего: " + generatorCount + " Генераторов" );
         player.sendMessage("§7Всего: " + cableCount + " Кабелей");
         player.sendMessage("§7Всего: " + barrierCount + " Барьеров");
+        player.sendMessage("§7Всего: " + enecoderCount + " Шифраторов");
     }
 
     /**

@@ -122,6 +122,7 @@ public class NewMechanismListener implements Listener {
                     return true;
                 });
                 addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
+                networkSystems.addNetworkManager(networkManager);
                 player.sendMessage("Создаю новую сеть!");
 
                 if(mechanismType == MechanismType.BARRIER) {
@@ -420,10 +421,10 @@ public class NewMechanismListener implements Listener {
             Inventory gui = holder.getInventory();
 
             // Получаем TileState блока (для Dropper, Furnace и т.д.)
-            if (!(block.getState() instanceof TileState tileState)) {
-                player.sendMessage(ChatColor.RED + "Ошибка: блок не является TileState!");
-                return;
-            }
+//            if (!(block.getState() instanceof TileState tileState)) {
+//                player.sendMessage(ChatColor.RED + "Ошибка: блок не является TileState!");
+//                return;
+//            }
 
             //Если хранилище - восстанавливаем предметы из PDC
 //            if (block.getType() == Material.DROPPER || block.getType() == Material.HOPPER) {
