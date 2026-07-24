@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.database.MechanismRepository;
+import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -39,12 +40,14 @@ public class ChunkUtil {
     public static void restoreMechanismsByChunk(
             TransactionManager transactionManager,
             MechanismRepository mechanismRepository,
+            NetworkRepository networkRepository,
             NetworkSystems networkSystems,
             World world,
             int chunkX,
             int chunkZ
     ){
         try {
+
             List<INetworkElement> mechanisms = transactionManager.execute(connection -> mechanismRepository.findByChunk(
                     connection,
                     world,
@@ -52,8 +55,8 @@ public class ChunkUtil {
                     chunkZ
             ));
 
-
             int restoredCount = 0;
+            HashMap<UUID, NetworkManager> netManagersById = new HashMap<>();
 
             for (INetworkElement mechanism : mechanisms) {
                 restoredCount++;
@@ -62,14 +65,26 @@ public class ChunkUtil {
                 UUID networkId = mechanism.getNetworkId();
                 if(networkSystems.hasNetwork(networkId)) {
                     networkManager = networkSystems.getNetworkManager(networkId);
+                    netManagersById.put(networkId, networkManager);
                     mechanismMap.computeIfAbsent(networkId, id -> new ArrayList<>())
                             .add(mechanism);
                 } else {
-                    networkManager = new NetworkManager(networkId, mechanism.getLocation().getWorld());
+                    if(netManagersById.containsKey(networkId)) {
+                        networkManager = netManagersById.get(networkId);
+                    } else {
+                        networkManager = transactionManager.execute(connection -> networkRepository.findById(
+                                connection,
+                                networkId
+                        ));
+                        if(networkManager == null) continue;
+                        netManagersById.put(networkId, networkManager);
+                    }
+
                     networkSystems.addNetworkManager(networkManager);
                     mechanismMap.computeIfAbsent(networkId, id -> new ArrayList<>())
                             .add(mechanism);
-                }
+                    }
+
                 networkManager.addElement(mechanism);
                 mechanism.getMechanismType().getMechanismManager().registerMechanism(mechanism, mechanism.getLocation());
             }

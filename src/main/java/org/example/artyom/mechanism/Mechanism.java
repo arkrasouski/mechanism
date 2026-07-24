@@ -112,7 +112,7 @@ public final class Mechanism extends JavaPlugin {
         );
         //Обновление чанков
         Bukkit.getPluginManager().registerEvents(
-                new ChunkListener(transactionManager, mechanismRepository, networkSystems, processedChunks),
+                new ChunkListener(transactionManager, mechanismRepository, networkRepository, networkSystems, processedChunks),
                 this
         );
         //Входы игрока
@@ -135,7 +135,7 @@ public final class Mechanism extends JavaPlugin {
 
                 int chunkX = chunk.getX();
                 int chunkZ = chunk.getZ();
-                ChunkUtil.restoreMechanismsByChunk(transactionManager, mechanismRepository, networkSystems, world, chunkX, chunkZ);
+                ChunkUtil.restoreMechanismsByChunk(transactionManager, mechanismRepository, networkRepository, networkSystems, world, chunkX, chunkZ);
             }
         }
 

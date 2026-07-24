@@ -78,6 +78,7 @@ public class BarrierListener implements Listener {
             network.setPassword(pass);
             network.setOwner(playerId);
             player.sendMessage("Пароль: " + password);
+            player.closeInventory();
         }
 
         if (holder.getScreen() == BarrierActionInventory.MAIN_MENU && slot == 14) {;

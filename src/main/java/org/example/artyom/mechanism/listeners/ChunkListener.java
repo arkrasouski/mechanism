@@ -7,6 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.example.artyom.mechanism.database.MechanismRepository;
+import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.records.ChunkKey;
@@ -21,16 +22,19 @@ public class ChunkListener implements Listener {
 
     private final TransactionManager transactionManager;
     private final MechanismRepository mechanismRepository;
+    private final NetworkRepository networkRepository;
     private final NetworkSystems networkSystems;
     private final Set<ChunkKey> processedChunks;
 
 
     public ChunkListener(TransactionManager transactionManager,
                          MechanismRepository mechanismRepository,
+                         NetworkRepository networkRepository,
                          NetworkSystems networkSystems,
                          Set<ChunkKey> processedChunks) {
         this.transactionManager = transactionManager;
         this.mechanismRepository = mechanismRepository;
+        this.networkRepository = networkRepository;
         this.networkSystems = networkSystems;
         this.processedChunks = processedChunks;
     }
@@ -48,7 +52,7 @@ public class ChunkListener implements Listener {
             return;
         }
 
-        ChunkUtil.restoreMechanismsByChunk(transactionManager, mechanismRepository, networkSystems, world, chunkX, chunkZ);
+        ChunkUtil.restoreMechanismsByChunk(transactionManager, mechanismRepository, networkRepository, networkSystems, world, chunkX, chunkZ);
     }
 
     @EventHandler

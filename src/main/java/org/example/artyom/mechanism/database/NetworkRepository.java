@@ -1,5 +1,6 @@
 package org.example.artyom.mechanism.database;
 
+import org.bukkit.Bukkit;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.utils.LogUtil;
 
@@ -140,6 +141,37 @@ public class NetworkRepository {
             return stmt.executeUpdate() > 0;
         }
         catch (SQLException e){
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    /**
+     * Получение полных данных (пароль, владелец) по id сети
+     */
+    public NetworkManager findById(Connection connection, UUID networkId) throws SQLException {
+        String sql = "SELECT * FROM networks WHERE network_id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, networkId.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+
+                NetworkManager networkManager = new NetworkManager(networkId, Bukkit.getServer().getWorld(rs.getString("world_name")));
+
+                String ownerString = rs.getString("owner");
+
+                if (ownerString != null) {
+                    networkManager.setOwner(UUID.fromString(rs.getString("owner")));
+                }
+                int password = rs.getInt("password");
+                if(!rs.wasNull()) {
+                    networkManager.setPassword(password);
+                }
+                return networkManager;
+            }
+            return null;
+        }
+        catch (SQLException e) {
             e.printStackTrace();
             throw e;
         }
