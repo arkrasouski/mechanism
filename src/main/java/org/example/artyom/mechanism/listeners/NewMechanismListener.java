@@ -143,50 +143,70 @@ public class NewMechanismListener implements Listener {
                 addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
                 player.sendMessage("Один сосед, перенимаю сеть!");
             }
+            else {
+                HashMap<Integer, NetworkManager> networkManagerMap = new HashMap<>();
+                for(NetworkManager networkManager : connectedNetworks) {
+                    int password = networkManager.getPassword();
+                    if (password > 0) {
+                    networkManagerMap.put(networkManager.getPassword(), networkManager);
+                    }
+                }
+                if (networkManagerMap.size() > 1) {
+
+                    if(mechanismType != MechanismType.ENCODER){
+                        //TODO: создать сеть для шифратора чтобы он мог открываться
+                        player.sendMessage("Конфликт! Необходим шифратор для разрешения");
+                        event.setCancelled(true);
+                    }
+                    return;
+                }
+                else {
+                    NetworkManager primaryNetwork = networkManagerMap.values().iterator().next();
+                    List<NetworkManager> secondaryNetworks = connectedNetworks.stream()
+                        .filter(n -> n != primaryNetwork)
+                        .toList();
+                    UUID primaryId = primaryNetwork.getNetworkId();
+                    List<UUID> secondaryIds = secondaryNetworks.stream().map(NetworkManager::getNetworkId).toList();
+                    mechanism.setNetworkId(primaryId);
+
+                    transactionManager.execute(connection -> {
+                        mechanismRepository.addMechanism(connection, mechanism);
+                        mechanismRepository.batchUpdateMechanismNetworks(connection, primaryId, secondaryIds);
+                        networkRepository.deleteSecondaryNetworks(connection, secondaryIds);
+                        return true;
+                    });
+                    primaryNetwork.addElement(mechanism);
+
+                    for (NetworkManager secondary : secondaryNetworks) {
+                        for (INetworkElement element : secondary.getElements()) {
+                            element.setNetworkId(primaryId);
+                            primaryNetwork.addElement(element);
+
+                            MechanismType type = element.getMechanismType();
+                            Map<UUID, List<INetworkElement>> targetMap = type.getMechsByNetwork();
+                            targetMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
+                                    .add(element);
+
+
+                        }
+                        networkSystems.removeNetworkManager(secondary);
+                        for(MechanismType type : MechanismType.values()){
+                            type.getMechsByNetwork().remove(secondary.getNetworkId());
+                        }
+                    }
+
+                    mechanismMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
+                            .add(mechanism);
+
+                    manager.registerMechanism(mechanism, loc);
+                    player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
+                }
+            }
                 //Может не вернуть ничего если пустые connectedNetworks
 //                NetworkManager primaryNetwork = connectedNetworks.stream()
 //                        .max(Comparator.comparingInt(n -> n.getElements().size()))
 //                        .orElseThrow();
-//
-//                List<NetworkManager> secondaryNetworks = connectedNetworks.stream()
-//                        .filter(n -> n != primaryNetwork)
-//                        .toList();
-//                UUID primaryId = primaryNetwork.getNetworkId();
-//                List<UUID> secondaryIds = secondaryNetworks.stream().map(NetworkManager::getNetworkId).toList();
-//                mechanism.setNetworkId(primaryId);
-//
-//                transactionManager.execute(connection -> {
-//                    mechanismRepository.addMechanism(connection, mechanism);
-//                    mechanismRepository.batchUpdateMechanismNetworks(connection, primaryId, secondaryIds);
-//                    networkRepository.deleteSecondaryNetworks(connection, secondaryIds);
-//                    return true;
-//                });
-//                primaryNetwork.addElement(mechanism);
-//
-//                for (NetworkManager secondary : secondaryNetworks) {
-//                    for (INetworkElement element : secondary.getElements()) {
-//                        element.setNetworkId(primaryId);
-//                        primaryNetwork.addElement(element);
-//
-//                        MechanismType type = element.getMechanismType();
-//                        Map<UUID, List<INetworkElement>> targetMap = type.getMechsByNetwork();
-//                        targetMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
-//                                .add(element);
-//
-//
-//                    }
-//                    networkSystems.removeNetworkManager(secondary);
-//                    for(MechanismType type : MechanismType.values()){
-//                        type.getMechsByNetwork().remove(secondary.getNetworkId());
-//                    }
-//                }
-//
-//                mechanismMap.computeIfAbsent(primaryId, id -> new ArrayList<>())
-//                        .add(mechanism);
-//
-//                manager.registerMechanism(mechanism, loc);
-//                player.sendMessage("✓ Объединено " + (secondaryNetworks.size() + 1) + " сетей");
-      //      }
+
             // ШАГ 5: Сообщение игроку
             player.sendMessage("§a✓ " + mechanismType.getDisplayName() + " успешно установлен!");
 
@@ -198,6 +218,10 @@ public class NewMechanismListener implements Listener {
             e.printStackTrace();
         }
     }
+
+    /**
+     *
+     */
 
     /**
      * Вспомогательная функция привязки механизма к сети и переменным хранения механизма
