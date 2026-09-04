@@ -25,7 +25,7 @@ public class BarrierHolder extends MechanismHolder{
         else {
             this.screen = BarrierActionInventory.MAIN_MENU;
         }
-        this.inventory = BarrierMenuFactory.create(this, size, glif); //переопределяю чтобы был инвентарь усо screen
+        this.inventory = BarrierMenuFactory.create(this, size, glif); //переопределяю чтобы был инвентарь со screen
     }
 
 

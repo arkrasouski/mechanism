@@ -1,8 +1,5 @@
 package org.example.artyom.mechanism.inventories;
 
-import org.bukkit.Location;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 

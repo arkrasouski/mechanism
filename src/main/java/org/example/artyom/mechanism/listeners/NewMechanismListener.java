@@ -95,23 +95,11 @@ public class NewMechanismListener implements Listener {
             return;
         }
 
-        Set<NetworkManager> connectedNetworks = new HashSet<>();
-        // 6 сторон куба
-        Location[] sides = BlockUtil.getSidesByLoc(loc);
-
-        for(Location side : sides) {
-            for (NetworkManager netManager : networkSystems.getNetworks()) {
-                INetworkElement elem = netManager.getElement(side);
-                if (elem != null) {
-                    player.sendMessage("сеть" + netManager.getNetworkId());
-                    connectedNetworks.add(netManager);
-                }
-            }
-        }
+        Set<NetworkManager> connectedNetworks = NetworkUtil.getNetworkManagersByLoc(networkSystems, loc);
 
         try {
             Map<UUID, List<INetworkElement>> mechanismMap = mechanism.getMechanismType().getMechsByNetwork();
-            //Здесь создается новая сеть
+            //Здесь создается новая сеть (нет соседей)
             if(connectedNetworks.isEmpty()) {
                 NetworkManager networkManager =  networkSystems.createDetachedNetwork(mechanism.getLocation());
                 UUID networkId = networkManager.getNetworkId();
@@ -130,7 +118,7 @@ public class NewMechanismListener implements Listener {
 
                 }
             }
-            //Здесь склейка сетей
+            //Здесь склейка сетей (сосед 1)
             else if (connectedNetworks.size() == 1){
                 NetworkManager networkManager = connectedNetworks.iterator().next();
                 UUID networkId = networkManager.getNetworkId();
@@ -143,19 +131,18 @@ public class NewMechanismListener implements Listener {
                 addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
                 player.sendMessage("Один сосед, перенимаю сеть!");
             }
+            //Много соседей склейка
             else {
-                //TODO: Исправить логику паролей на логику игроков
-                HashMap<Integer, NetworkManager> passwordNetworkMap = new HashMap<>();
                 HashMap<UUID, NetworkManager> playerNetworkMap = new HashMap<>();
                 for(NetworkManager networkManager : connectedNetworks) {
-                    int password = networkManager.getPassword();
-                    if (password > 0) {
-                        playerNetworkMap.put(player.getUniqueId(), networkManager);
-                        passwordNetworkMap.put(networkManager.getPassword(), networkManager);
+                    UUID ownerId = networkManager.getOwner();
+                    if (ownerId != null) {
+                        playerNetworkMap.put(ownerId, networkManager);
                     }
                 }
-                if (passwordNetworkMap.size() > 1) {
-
+                //Несколько сетей нескольких людей
+                if (playerNetworkMap.size() > 1) {
+                    //Если шифратор
                     if(mechanismType == MechanismType.ENCODER){
                         //Если игрок ставит шифратор возле своей сети, берем ее
                         NetworkManager networkManager;
@@ -163,11 +150,17 @@ public class NewMechanismListener implements Listener {
                            networkManager = playerNetworkMap.get(player.getUniqueId());
                         }
                         else {
-                            networkManager = networkSystems.createDetachedNetwork(mechanism.getLocation());
+                            player.sendMessage("Вы не являетесь владельцем ни одной из сетей! Досвидос");
+                            event.setCancelled(true);
+                            return;
                         }
                         mechanism.setNetworkId(networkManager.getNetworkId());
                         addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
-
+                        transactionManager.execute(connection -> {
+                            mechanismRepository.addMechanism(connection, mechanism);
+                            return true;
+                        });
+                    //Если не шифратор
                     } else {
                         player.sendMessage("Конфликт! Необходим шифратор для разрешения");
                         event.setCancelled(true);
@@ -175,8 +168,9 @@ public class NewMechanismListener implements Listener {
                     }
 
                 }
-                else if (passwordNetworkMap.size() == 1) {
-                    NetworkManager primaryNetwork = passwordNetworkMap.values().iterator().next();
+                //Просто склеиваем сети как раньше для одного владельца
+                else if (playerNetworkMap.size() == 1) {
+                    NetworkManager primaryNetwork = playerNetworkMap.values().iterator().next();
                     mergeByPrimaryNetwork(
                             primaryNetwork,
                             connectedNetworks,
@@ -187,6 +181,7 @@ public class NewMechanismListener implements Listener {
                             player
                     );
                 }
+                //соседей много но без владельцев
                 else {
                     NetworkManager primaryNetwork = connectedNetworks.stream().max(Comparator.comparingInt(n -> n.getElements().size()))
                                 .orElseThrow();
@@ -513,7 +508,7 @@ public class NewMechanismListener implements Listener {
         if (!(e.getInventory().getHolder() instanceof MechanismHolder holder)) return;
         //guiManager.addViewer(h.getLocation(), e.getPlayer().getUniqueId());
         Player player = (Player) e.getPlayer();
-
+        holder.updateEnergyBar();
         openedInventories.put(player, holder);
     }
 

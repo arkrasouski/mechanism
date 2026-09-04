@@ -9,7 +9,6 @@ import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 import org.example.artyom.mechanism.utils.EnergyUtil;
-import org.example.artyom.mechanism.utils.LogUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
