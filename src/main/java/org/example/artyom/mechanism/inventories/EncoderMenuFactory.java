@@ -11,6 +11,7 @@ import org.example.artyom.mechanism.utils.ItemsUtil;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class EncoderMenuFactory {
@@ -41,7 +42,10 @@ public class EncoderMenuFactory {
     }
     private static Inventory fillMainMenu(Inventory inv, Set<NetworkManager> connectedNetworks, Player player) {
         List<ItemStack> items = connectedNetworks.stream()
-                .filter(network -> !network.getOwner().equals(player.getUniqueId()))
+                .filter(network -> {
+                    UUID owner = network.getOwner();
+                    return owner != null && !owner.equals(player.getUniqueId());
+                })
                 .map(network -> ItemsUtil.create(
                         Material.PURPLE_BANNER,
                         1,

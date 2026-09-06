@@ -7,6 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.Mechanism;
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
@@ -18,6 +19,7 @@ import org.example.artyom.mechanism.mechanism.encoder.Encoder;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static org.example.artyom.mechanism.Mechanism.getNetworkSystems;
@@ -157,5 +159,28 @@ public class ListenerUtil {
         else color = "§c";
 
         return color + current + "§7/§f" + max + " §7(" + String.format("%.1f", percent) + "%)";
+    }
+
+    /**
+     * Проверяет, используется ли шифратор
+     */
+    public static boolean isEncryptorInUse(
+            Location location,
+            Map<Block, Player> encryptorOwners,
+            Map<Player, MechanismHolder> openedInventories
+    ) {
+        // Быстрая проверка через дополнительный мап
+        if (encryptorOwners.containsKey(location)) {
+            Player owner = encryptorOwners.get(location);
+            // Проверяем, что владелец все еще онлайн и держит инвентарь
+            if (owner != null && owner.isOnline() && openedInventories.containsKey(owner)) {
+                return true;
+            } else {
+                // Если владелец оффлайн или закрыл инвентарь - чистим
+                encryptorOwners.remove(location);
+                return false;
+            }
+        }
+        return false;
     }
 }

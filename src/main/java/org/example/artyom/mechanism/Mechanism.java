@@ -2,6 +2,7 @@ package org.example.artyom.mechanism;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,6 +15,7 @@ import org.example.artyom.mechanism.listeners.*;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 
 import org.example.artyom.mechanism.mechanism.barrier.Barrier;
+import org.example.artyom.mechanism.mechanism.base.Consumer;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
@@ -231,42 +233,62 @@ public final class Mechanism extends JavaPlugin {
 
     // Шедулеры
     private void startGenerationTask() {
+        ConsumerSelectionStrategy strategy = new NearestConsumerStrategy();
+
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (INetworkElement g : generatorManager.getActiveMechanisms()) {
                 Generator generator = (Generator) g;
 
                 int producedEnergy = generator.produceEnergy();
                 generator.addEnergy(producedEnergy);
-//TODO: Если открыто меню
+
                 UUID networkId = generator.getNetworkId();
-                List<INetworkElement> barriers = barriersByNetwork.get(networkId);
+                List<INetworkElement> consumers = getAllConsumersInNetwork(networkId);
 
-                if (barriers == null || barriers.isEmpty()) return;
+                if (consumers.isEmpty()) return;
 
-                Barrier best = null;
-                double bestDist = Double.MAX_VALUE;
-
-                for (INetworkElement b : barriers) {
-                    Barrier barrier = (Barrier) b;
-                    if (barrier.isFull()) continue;
-
-                    double dist = barrier.getLocation().distanceSquared(generator.getLocation());
-                    if (dist < bestDist) {
-                        bestDist = dist;
-                        best = barrier;
-                    }
-                }
+                Consumer best = (Consumer) strategy.selectConsumer(generator, consumers);
 
                 if (best != null) {
                     int sent = generator.getEnergyTransferPerTick();
                     generator.extractEnergy(sent);
                     best.addEnergy(sent);
                 }
-
-
-
             }
         }, 0L, 20L);
+    }
+    // Интерфейс стратегии
+    public interface ConsumerSelectionStrategy {
+        INetworkElement selectConsumer(Generator generator, List<INetworkElement> consumers);
+    }
+
+    // Реализация стратегии ближайшего потребителя
+    public static class NearestConsumerStrategy implements ConsumerSelectionStrategy {
+        @Override
+        public INetworkElement selectConsumer(Generator generator, List<INetworkElement> consumers) {
+            INetworkElement best = null;
+            double bestDist = Double.MAX_VALUE;
+            Location generatorLoc = generator.getLocation();
+
+            for (INetworkElement consumer : consumers) {
+                if (!(consumer instanceof Consumer) || ((Consumer) consumer).isFull()) continue;
+
+                double dist = consumer.getLocation().distanceSquared(generatorLoc);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = consumer;
+                }
+            }
+
+            return best;
+        }
+    }
+
+    public List<INetworkElement> getAllConsumersInNetwork(UUID networkId){
+        List<INetworkElement> consumers = new ArrayList<>();
+        consumers.addAll(barriersByNetwork.getOrDefault(networkId, Collections.emptyList()));
+        consumers.addAll(encodersByNetwork.getOrDefault(networkId, Collections.emptyList()));
+        return consumers;
     }
 
     private void startFlushTask() {

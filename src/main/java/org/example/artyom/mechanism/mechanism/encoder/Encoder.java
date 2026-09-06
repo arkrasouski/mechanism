@@ -7,7 +7,7 @@ import org.example.artyom.mechanism.mechanism.base.Consumer;
 public class Encoder extends Consumer {
     private static final int CAPACITY = 500;
     private static final int CONSUMPTION_PER_TICK = 10;
-    private static final int CHARGE_PER_TICK = -1;
+    private static final int CHARGE_PER_TICK = 8;
     private static final MechanismType MECHANISM_TYPE = MechanismType.ENCODER;
 
     /**
@@ -16,7 +16,7 @@ public class Encoder extends Consumer {
     public Encoder(Location location) {
         super(location,
                 0,
-                false,
+                true,
                 CAPACITY,
                 CONSUMPTION_PER_TICK,
                 CHARGE_PER_TICK,
@@ -29,7 +29,7 @@ public class Encoder extends Consumer {
     public Encoder(Location location, int currentEnergy) {
         super(location,
                 currentEnergy,
-                false,
+                true,
                 CAPACITY,
                 CONSUMPTION_PER_TICK,
                 CHARGE_PER_TICK,

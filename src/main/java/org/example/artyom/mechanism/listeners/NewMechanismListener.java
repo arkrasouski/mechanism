@@ -48,6 +48,7 @@ public class NewMechanismListener implements Listener {
     private final MechanismRepository mechanismRepository;
     private final NamespacedKey key;
     private final Map<Player, MechanismHolder> openedInventories;
+    private final Map<Location, Player> encryptorOwners = new HashMap<>();
 
     public NewMechanismListener(Mechanism plugin,
                                 NetworkSystems networkSystems,
@@ -508,6 +509,22 @@ public class NewMechanismListener implements Listener {
         if (!(e.getInventory().getHolder() instanceof MechanismHolder holder)) return;
         //guiManager.addViewer(h.getLocation(), e.getPlayer().getUniqueId());
         Player player = (Player) e.getPlayer();
+
+        if (holder.getMechanismType() == MechanismType.ENCODER) {
+            Location loc = holder.getLocation();
+            // Проверяем через дополнительный мап
+            if (encryptorOwners.containsKey(loc)) {
+                Player owner = encryptorOwners.get(loc);
+                if (owner != null && owner.isOnline() && !owner.equals(player)) {
+                    player.sendMessage("§cШифратор уже использует §e" + owner.getName());
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+            // Занимаем шифратор
+            encryptorOwners.put(loc, player);
+        }
+
         holder.updateEnergyBar();
         openedInventories.put(player, holder);
     }
@@ -518,13 +535,19 @@ public class NewMechanismListener implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
         if (!(e.getView().getTopInventory().getHolder() instanceof MechanismHolder holder)) return;
-
+        Player player = (Player) e.getPlayer();
 //        BlockState blockState = holder.getLocation().getBlock().getState();
 //        if (blockState instanceof TileState tile) {
 //            MechanismStorageUtil.saveItems(tile, e.getView().getTopInventory(), key);
 //        }
 
-        Player player = (Player) e.getPlayer();
+        if (holder.getMechanismType() == MechanismType.ENCODER) {
+            Location loc = holder.getLocation();
+            if(encryptorOwners.get(loc) == player) {
+                encryptorOwners.remove(loc);
+            }
+        }
+
         openedInventories.remove(player);
     }
 
