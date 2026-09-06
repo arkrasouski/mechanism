@@ -94,7 +94,8 @@ public class GeneratorListener implements Listener {
         Player player = e.getPlayer();
 
         GeneratorHolder generatorHolder = new GeneratorHolder(
-                generator
+                generator,
+                player
         );
         generatorHolder.updateEnergyBar();
         

@@ -1,19 +1,18 @@
 package org.example.artyom.mechanism.inventories;
 
+import org.bukkit.entity.Player;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.Mech;
-import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 
-import java.util.List;
 import java.util.UUID;
 
 public class BarrierHolder extends MechanismHolder{
     private int page;
     private BarrierActionInventory screen;
 
-    public BarrierHolder(Mech mechanism) {
+    public BarrierHolder(Mech mechanism, Player player) {
         super(mechanism, MechanismType.BARRIER, 36, "barrier_glif", null);
         this.page = 1;
         UUID networkId = mechanism.getNetworkId();

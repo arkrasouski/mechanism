@@ -478,7 +478,7 @@ public class NewMechanismListener implements Listener {
         if (element == null) return;
         if (element instanceof Mech mechanism) {
             e.setCancelled(true);
-            MechanismHolder holder = mechanismType.getMechanismHolder(mechanism);
+            MechanismHolder holder = mechanismType.getMechanismHolder(mechanism, player);
 
             openedInventories.put(player, holder);
 

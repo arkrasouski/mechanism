@@ -2,6 +2,7 @@ package org.example.artyom.mechanism.mechanism;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.example.artyom.mechanism.IMechanismManager;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.inventories.BarrierHolder;
@@ -164,7 +165,7 @@ public enum MechanismType  {
     /**
      * Получить холдер инвентаря для типа механизма
      */
-    public MechanismHolder getMechanismHolder(Mech mechanism) {
-        return registryMechanismHolder.get(this).getHolder(mechanism);
+    public MechanismHolder getMechanismHolder(Mech mechanism, Player player) {
+        return registryMechanismHolder.get(this).getHolder(mechanism, player);
     }
 }
