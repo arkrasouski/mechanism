@@ -39,6 +39,7 @@ import org.example.artyom.mechanism.utils.*;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class NewMechanismListener implements Listener {
     private final Mechanism plugin;
@@ -146,22 +147,47 @@ public class NewMechanismListener implements Listener {
                     //Если шифратор
                     if(mechanismType == MechanismType.ENCODER){
                         //Если игрок ставит шифратор возле своей сети, берем ее
-                        NetworkManager networkManager;
-                        if (playerNetworkMap.get(player.getUniqueId()) != null) {
-                           networkManager = playerNetworkMap.get(player.getUniqueId());
-                        }
-                        else {
+                        // Собираем ВСЕ сети игрока
+                        UUID playerId = player.getUniqueId();
+
+                        List<NetworkManager> playerNetworks = connectedNetworks.stream()
+                                .filter(nm -> playerId.equals(nm.getOwner()))
+                                .toList();
+
+                        if (playerNetworks.isEmpty()) {
                             player.sendMessage("Вы не являетесь владельцем ни одной из сетей! Досвидос");
                             event.setCancelled(true);
                             return;
                         }
-                        mechanism.setNetworkId(networkManager.getNetworkId());
-                        addMechanismToNetwork(networkManager, manager, mechanismMap, mechanism);
-                        transactionManager.execute(connection -> {
-                            mechanismRepository.addMechanism(connection, mechanism);
-                            return true;
-                        });
-                    //Если не шифратор
+
+                        // Объединяем все сети игрока в одну
+                        NetworkManager primaryPlayerNetwork = playerNetworks.get(0);
+                        if (playerNetworks.size() > 1) {
+                            for (int i = 1; i < playerNetworks.size(); i++) {
+                                // Исправлено: передаем Set, а не List
+                                Set<NetworkManager> toMerge = new HashSet<>();
+                                toMerge.add(playerNetworks.get(i));
+                                mergeByPrimaryNetwork(
+                                        primaryPlayerNetwork,
+                                        toMerge,
+                                        mechanism,
+                                        loc,
+                                        mechanismMap,
+                                        manager,
+                                        player
+                                );
+                            }
+                        }
+
+                            // Только свои сети — просто добавляем механизм
+                            mechanism.setNetworkId(primaryPlayerNetwork.getNetworkId());
+                            addMechanismToNetwork(primaryPlayerNetwork, manager, mechanismMap, mechanism);
+                            transactionManager.execute(connection -> {
+                                mechanismRepository.addMechanism(connection, mechanism);
+                                return true;
+                            });
+
+                            //Если не шифратор
                     } else {
                         player.sendMessage("Конфликт! Необходим шифратор для разрешения");
                         event.setCancelled(true);
@@ -354,7 +380,6 @@ public class NewMechanismListener implements Listener {
             //Устанавливаем элементы к определенной сети
             for (int i = 0; i < components.size(); i++) {
                 NetworkManager newManager = plannedManagers.get(i);
-                UUID newNetworkIid = newManager.getNetworkId();
 
                 Set<INetworkElement> component = components.get(i);
 
