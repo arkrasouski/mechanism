@@ -1,10 +1,13 @@
 package org.example.artyom.mechanism.utils;
 
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 import org.example.artyom.mechanism.Mechanism;
@@ -23,7 +26,9 @@ import org.example.artyom.mechanism.mechanism.encoder.Encoder;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
+import org.example.artyom.mechanism.records.BreakContext;
 import org.example.artyom.mechanism.records.NetworkComponentData;
+import org.example.artyom.mechanism.records.NetworkSplitResult;
 import org.example.artyom.mechanism.records.PlaceContext;
 
 import java.sql.SQLException;
@@ -256,7 +261,7 @@ public class ListenerUtil {
         return canPlaceMechanism(block, player);
     }
 
-    public static void handleNetworkLogic(
+    public static boolean handleNetworkLogic(
             PlaceContext ctx,
             NetworkSystems networkSystems,
             TransactionManager transactionManager,
@@ -268,8 +273,9 @@ public class ListenerUtil {
         } else if (ctx.connectedNetworks().size() == 1) {
             handleSingleNeighbor(ctx, transactionManager, mechanismRepository);
         } else {
-            handleMultipleNeighbors(ctx, networkSystems, transactionManager, networkRepository, mechanismRepository);
+            return handleMultipleNeighbors(ctx, networkSystems, transactionManager, networkRepository, mechanismRepository);
         }
+        return true;
     }
 
     private static void handleSingleNeighbor(
@@ -312,7 +318,7 @@ public class ListenerUtil {
 
     }
     
-    private static void handleMultipleNeighbors(
+    private static boolean handleMultipleNeighbors(
             PlaceContext ctx,
             NetworkSystems networkSystems,
             TransactionManager transactionManager,
@@ -333,6 +339,7 @@ public class ListenerUtil {
                 );
             } else {
                 rejectConflictingNetworks(ctx);
+                return false;
             }
         } else if (playerNetworkMap.size() == 1) {
             mergeNetworksSingleOwner(
@@ -345,6 +352,7 @@ public class ListenerUtil {
         } else {
             mergeNetworksNoOwners(ctx, transactionManager, mechanismRepository, networkRepository, networkSystems);
         }
+        return true;
     }
 
     /**
@@ -600,4 +608,166 @@ public class ListenerUtil {
 
         return new NetworkComponentData(component, newOwnerId, hasOwner, password);
     }
+
+    public static BreakContext createBreakContext(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        Player player = event.getPlayer();
+
+        MechanismType mechanismType = getMechanismType(block);
+        if (mechanismType == null) return null;
+
+        MechanismManager manager = mechanismType.getMechanismManager();
+        INetworkElement mechanism = manager.getMechanism(block.getLocation());
+        if (mechanism == null) return null;
+
+        return new BreakContext(block, player, mechanismType, manager, mechanism);
+    }
+
+    public static boolean validateTool(Player player, MechanismType mechanismType) {
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        if (!ToolUtil.canBreakWithTool(player, tool)) {
+            player.sendMessage("§c " + mechanismType.getDisplayName() + " можно сломать только киркой!");
+            return false;
+        }
+        return true;
+    }
+
+    public static NetworkSplitResult splitNetwork(INetworkElement mechanism, NetworkSystems networkSystems) {
+        Set<INetworkElement> neighbors = new HashSet<>(mechanism.getConnections());
+        UUID oldNetworkId = mechanism.getNetworkId();
+        NetworkManager oldNetwork = networkSystems.getNetworkManager(oldNetworkId);
+
+        // Удаляем связи
+        for (INetworkElement neighbor : neighbors) {
+            neighbor.removeConnection(mechanism);
+        }
+
+        // Находим компоненты связности
+        Set<INetworkElement> unvisited = new HashSet<>(neighbors);
+        List<Set<INetworkElement>> components = new ArrayList<>();
+
+        while (!unvisited.isEmpty()) {
+            INetworkElement start = unvisited.iterator().next();
+            Set<INetworkElement> component = networkSystems.collectComponent(start);
+            unvisited.removeAll(component);
+            component.remove(mechanism);
+            components.add(component);
+        }
+
+        // Анализируем компоненты
+        List<NetworkComponentData> componentData = components.stream()
+                .map(comp -> ListenerUtil.analyzeComponent(comp, networkSystems))
+                .toList();
+
+        // Создаём новые менеджеры
+        List<NetworkManager> newManagers = componentData.stream()
+                .map(data -> {
+                    Location loc = data.component().stream().iterator().next().getLocation();
+                    NetworkManager manager = networkSystems.createDetachedNetwork(loc);
+                    manager.setOwner(data.newOwnerId());
+                    manager.setPassword(data.password());
+                    networkSystems.addNetworkManager(manager);
+                    return manager;
+                })
+                .toList();
+
+        return new NetworkSplitResult(
+                oldNetworkId, oldNetwork, neighbors,
+                newManagers, components, componentData
+        );
+    }
+    public static void persistSplitBreakToDatabase(
+            NetworkSplitResult result, 
+            INetworkElement mechanism,
+            TransactionManager transactionManager,
+            MechanismRepository mechanismRepository,
+            NetworkRepository networkRepository
+    ) throws SQLException {
+        transactionManager.execute(connection -> {
+            mechanismRepository.deleteMechanism(connection, mechanism.getLocation());
+
+            for (int i = 0; i < result.components().size(); i++) {
+                NetworkManager manager = result.newManagers().get(i);
+                Set<INetworkElement> component = result.components().get(i);
+
+                networkRepository.createNetwork(connection, manager);
+                mechanismRepository.batchUpdateMechanismLocNetworks(
+                        connection, component, manager.getNetworkId()
+                );
+            }
+
+            networkRepository.deleteNetwork(connection, result.oldNetworkId().toString());
+            return true;
+        });
+    }
+
+    public static void updateMemoryBreak(
+            NetworkSplitResult result, 
+            BreakContext context,
+            NetworkSystems networkSystems
+    ) {
+        // Удаляем старый механизм
+        context.manager().deleteMechanism(context.mechanism().getLocation());
+
+        // Привязываем элементы к новым сетям
+        for (int i = 0; i < result.components().size(); i++) {
+            NetworkManager newManager = result.newManagers().get(i);
+            Set<INetworkElement> component = result.components().get(i);
+
+            for (INetworkElement element : component) {
+                element.setNetworkId(newManager.getNetworkId());
+                newManager.addElement(element);
+
+                Map<UUID, List<INetworkElement>> targetMap =
+                        element.getMechanismType().getMechsByNetwork();
+                targetMap.computeIfAbsent(newManager.getNetworkId(), id -> new ArrayList<>())
+                        .add(element);
+            }
+        }
+
+        // Удаляем старую сеть
+        networkSystems.removeNetworkManager(result.oldNetworkId());
+        for (MechanismType type : MechanismType.values()) {
+            type.getMechsByNetwork().remove(result.oldNetworkId());
+        }
+    }
+
+    public static void handleDropAndEffectsBreak(
+            BlockBreakEvent event,
+            BreakContext context,
+            Mechanism plugin
+    ) {
+        ListenerUtil.spawnPlaceEffect(context.block());
+        event.setDropItems(false);
+
+        if (context.block().getState() instanceof Container cont) {
+            cont.getInventory().clear();
+            cont.update(true);
+        }
+        context.block().setType(Material.AIR);
+
+        if (context.player().getGameMode() != GameMode.CREATIVE) {
+            ItemStack item = context.mechanismType().create(plugin).createItem(1);
+            context.block().getWorld().dropItemNaturally(
+                    context.block().getLocation(), item
+            );
+        }
+    }
+
+    public static void rollbackBreak(
+            NetworkSplitResult result,
+            INetworkElement mechanism,
+            NetworkSystems networkSystems
+    ) {
+        // Восстанавливаем связи
+        for (INetworkElement neighbor : result.neighbors()) {
+            neighbor.addConnection(mechanism);
+        }
+
+        // Удаляем созданные сети
+        for (NetworkManager manager : result.newManagers()) {
+            networkSystems.removeNetworkManager(manager);
+        }
+    }
+
 }

@@ -3,7 +3,6 @@ package org.example.artyom.mechanism.listeners;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.block.Container;
 import org.bukkit.block.TileState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,25 +22,17 @@ import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.database.MechanismRepository;
 import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
-import org.example.artyom.mechanism.inventories.GeneratorHolder;
 import org.example.artyom.mechanism.inventories.MechanismHolder;
-import org.example.artyom.mechanism.items.BaseItem;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 import org.example.artyom.mechanism.mechanism.MechanismType;
-import org.example.artyom.mechanism.mechanism.base.IConsumer;
-import org.example.artyom.mechanism.mechanism.base.IProducer;
 import org.example.artyom.mechanism.mechanism.base.Mech;
-import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
-import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
-import org.example.artyom.mechanism.records.NetworkComponentData;
 import org.example.artyom.mechanism.records.PlaceContext;
 import org.example.artyom.mechanism.utils.*;
 
 import java.sql.SQLException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class NewMechanismListener implements Listener {
     private final Mechanism plugin;
@@ -82,157 +73,55 @@ public class NewMechanismListener implements Listener {
             if (!ListenerUtil.createMechanism(context)) return;
 
             // Шаг 3: Обработка сетей
-            ListenerUtil.handleNetworkLogic(context, networkSystems, transactionManager, networkRepository, mechanismRepository);
-
+            boolean isHandled = ListenerUtil.handleNetworkLogic(context, networkSystems, transactionManager, networkRepository, mechanismRepository);
+            if (!isHandled) return;
             // Шаг 4: Сохранение и финализация
             ListenerUtil.finalizePlacement(context);
         } catch (SQLException e) {
             ListenerUtil.handlePlacementError(context, e);
         }
     }
-
     /**
      * Ломаем механизм
      */
     @EventHandler
     public void onMechanismBreak(BlockBreakEvent event) {
-        Block block = event.getBlock();
-        Player player = event.getPlayer();
-        Location loc = block.getLocation();
+        var context = ListenerUtil.createBreakContext(event);
+        if (context == null) return;
 
-        MechanismType mechanismType = ListenerUtil.getMechanismType(block);
-        if (mechanismType == null) return;
-        MechanismManager manager = mechanismType.getMechanismManager();
-
-        INetworkElement mechanism = manager.getMechanism(loc);
-        if (mechanism == null) return;
-
-        // Проверка инструмента
-        ItemStack tool = player.getInventory().getItemInMainHand();
-        if (!ToolUtil.canBreakWithTool(player, tool)) {
+        if (!ListenerUtil.validateTool(context.player(), context.mechanismType())) {
             event.setCancelled(true);
-            player.sendMessage("§c " + mechanismType.getDisplayName() + " можно сломать только киркой!");
             return;
         }
 
-        // 1. Сохраняем данные для восстановления
-        Set<INetworkElement> neighbors = new HashSet<>(mechanism.getConnections());
-        UUID oldNetworkId = mechanism.getNetworkId();
-        NetworkManager oldNetwork = networkSystems.getNetworkManager(oldNetworkId);
-        UUID oldOwnerId = oldNetwork != null ? oldNetwork.getOwner() : null;
-
-        player.sendMessage("[Удаляю] Соседей: " + neighbors.size());
-
-        // 2. Удаляем связи
-        for (INetworkElement neighbor : neighbors) {
-            neighbor.removeConnection(mechanism);
-        }
-
-        // 3. Находим компоненты связности
-        Set<INetworkElement> unvisited = new HashSet<>(neighbors);
-        List<Set<INetworkElement>> components = new ArrayList<>();
-
-        while (!unvisited.isEmpty()) {
-            INetworkElement start = unvisited.iterator().next();
-            Set<INetworkElement> component = networkSystems.collectComponent(start);
-            unvisited.removeAll(component);
-            component.remove(mechanism);
-            components.add(component);
-        }
-
-        // 4. Обрабатываем каждую компоненту с учётом барьеров
-        List<NetworkComponentData> componentDataList = new ArrayList<>();
-
-        for (Set<INetworkElement> component : components) {
-            NetworkComponentData data = ListenerUtil.analyzeComponent(component, networkSystems);
-            componentDataList.add(data);
-        }
-
-        // 5. Создаём NetworkManager для каждой компоненты
-        List<NetworkManager> plannedManagers = new ArrayList<>();
-        for (NetworkComponentData data : componentDataList) {
-            Location compLoc = data.component().stream().iterator().next().getLocation();
-            NetworkManager netManager = networkSystems.createDetachedNetwork(compLoc);
-            netManager.setOwner(data.newOwnerId()); // Устанавливаем владельца
-            networkSystems.addNetworkManager(netManager);
-            plannedManagers.add(netManager);
-        }
+        var splitResult = ListenerUtil.splitNetwork(context.mechanism(), networkSystems);
 
         try {
-            // 6. Транзакция БД
-            transactionManager.execute(connection -> {
-                mechanismRepository.deleteMechanism(connection, mechanism.getLocation());
-
-                for (int i = 0; i < components.size(); i++) {
-                    NetworkManager newManager = plannedManagers.get(i);
-                    Set<INetworkElement> component = components.get(i);
-                    NetworkComponentData data = componentDataList.get(i);
-                    newManager.setOwner(data.newOwnerId());
-                    newManager.setPassword(data.password());
-                    networkRepository.createNetwork(connection, newManager);
-                    mechanismRepository.batchUpdateMechanismLocNetworks(connection, component, newManager.getNetworkId());
-                }
-
-                networkRepository.deleteNetwork(connection, oldNetworkId.toString());
-                return true;
-            });
-
-            // 7. Удаляем механизм из памяти
-            manager.deleteMechanism(loc);
-            Map<UUID, List<INetworkElement>> mechanismMap = mechanism.getMechanismType().getMechsByNetwork();
-
-            // 8. Привязываем элементы к новым сетям
-            for (int i = 0; i < components.size(); i++) {
-                NetworkManager newManager = plannedManagers.get(i);
-                Set<INetworkElement> component = components.get(i);
-
-
-                for (INetworkElement element : component) {
-                    element.setNetworkId(newManager.getNetworkId());
-
-                    newManager.addElement(element);
-                    MechanismType type = element.getMechanismType();
-                    Map<UUID, List<INetworkElement>> targetMap = type.getMechsByNetwork();
-                    targetMap.computeIfAbsent(newManager.getNetworkId(), id -> new ArrayList<>())
-                            .add(element);
-                }
-            }
-
-            // 9. Удаляем старую сеть
-            networkSystems.removeNetworkManager(oldNetworkId);
-            for (MechanismType type : MechanismType.values()) {
-                type.getMechsByNetwork().remove(oldNetworkId);
-            }
-
-            // 10. Визуальные эффекты и дроп
-            ListenerUtil.spawnPlaceEffect(block);
-            event.setDropItems(false);
-
-            if (block.getState() instanceof Container cont) {
-                cont.getInventory().clear();
-                cont.update(true);
-            }
-            block.setType(Material.AIR);
-
-            if (player.getGameMode() != GameMode.CREATIVE) {
-                ItemStack mechanismItem = mechanismType.create(plugin).createItem(1);
-                block.getWorld().dropItemNaturally(block.getLocation(), mechanismItem);
-            }
-
+            ListenerUtil.persistSplitBreakToDatabase(
+                    splitResult,
+                    context.mechanism(),
+                    transactionManager,
+                    mechanismRepository,
+                    networkRepository
+            );
+            ListenerUtil.updateMemoryBreak(
+                    splitResult,
+                    context,
+                    networkSystems
+                    );
+            ListenerUtil.handleDropAndEffectsBreak(
+                    event,
+                    context,
+                    plugin
+                    );
         } catch (SQLException e) {
+            ListenerUtil.rollbackBreak(
+                    splitResult,
+                    context.mechanism(),
+                    networkSystems
+            );
             event.setCancelled(true);
-
-            // Восстанавливаем связи
-            for (INetworkElement neighbor : neighbors) {
-                neighbor.addConnection(mechanism);
-            }
-
-            // Удаляем созданные сети
-            for (NetworkManager netManager : plannedManagers) {
-                networkSystems.removeNetworkManager(netManager);
-            }
-
-            player.sendMessage("§cОшибка при сохранении механизма");
+            context.player().sendMessage("§cОшибка при сохранении механизма");
             e.printStackTrace();
         }
     }
