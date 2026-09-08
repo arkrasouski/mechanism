@@ -35,6 +35,7 @@ import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
+import org.example.artyom.mechanism.records.NetworkComponentData;
 import org.example.artyom.mechanism.records.PlaceContext;
 import org.example.artyom.mechanism.utils.*;
 
@@ -90,9 +91,8 @@ public class NewMechanismListener implements Listener {
         }
     }
 
-
     /**
-     * Ломаем генератор
+     * Ломаем механизм
      */
     @EventHandler
     public void onMechanismBreak(BlockBreakEvent event) {
@@ -105,29 +105,33 @@ public class NewMechanismListener implements Listener {
         MechanismManager manager = mechanismType.getMechanismManager();
 
         INetworkElement mechanism = manager.getMechanism(loc);
-        if(mechanism == null) return;
+        if (mechanism == null) return;
 
-        // Проверяем, является ли сломанный блок механизмом
+        // Проверка инструмента
         ItemStack tool = player.getInventory().getItemInMainHand();
         if (!ToolUtil.canBreakWithTool(player, tool)) {
             event.setCancelled(true);
             player.sendMessage("§c " + mechanismType.getDisplayName() + " можно сломать только киркой!");
             return;
         }
+
         // 1. Сохраняем данные для восстановления
         Set<INetworkElement> neighbors = new HashSet<>(mechanism.getConnections());
         UUID oldNetworkId = mechanism.getNetworkId();
+        NetworkManager oldNetwork = networkSystems.getNetworkManager(oldNetworkId);
+        UUID oldOwnerId = oldNetwork != null ? oldNetwork.getOwner() : null;
 
         player.sendMessage("[Удаляю] Соседей: " + neighbors.size());
-        Set<INetworkElement> unvisited = new HashSet<>(neighbors);
 
-        // 2. Удаляем связи (Внимание! если их тут не удалить, компоненты будут хранить связь с механизмом)
+        // 2. Удаляем связи
         for (INetworkElement neighbor : neighbors) {
             neighbor.removeConnection(mechanism);
         }
 
-        //Сохраняем компоненты которые станут сетями
+        // 3. Находим компоненты связности
+        Set<INetworkElement> unvisited = new HashSet<>(neighbors);
         List<Set<INetworkElement>> components = new ArrayList<>();
+
         while (!unvisited.isEmpty()) {
             INetworkElement start = unvisited.iterator().next();
             Set<INetworkElement> component = networkSystems.collectComponent(start);
@@ -136,42 +140,57 @@ public class NewMechanismListener implements Listener {
             components.add(component);
         }
 
-        //Сохраняем сети которые создаем для обновления
-        List<NetworkManager> plannedManagers = new ArrayList<>();
+        // 4. Обрабатываем каждую компоненту с учётом барьеров
+        List<NetworkComponentData> componentDataList = new ArrayList<>();
+
         for (Set<INetworkElement> component : components) {
-            Location compLoc = component.stream().iterator().next().getLocation();
+            NetworkComponentData data = ListenerUtil.analyzeComponent(component, networkSystems);
+            componentDataList.add(data);
+        }
+
+        // 5. Создаём NetworkManager для каждой компоненты
+        List<NetworkManager> plannedManagers = new ArrayList<>();
+        for (NetworkComponentData data : componentDataList) {
+            Location compLoc = data.component().stream().iterator().next().getLocation();
             NetworkManager netManager = networkSystems.createDetachedNetwork(compLoc);
+            netManager.setOwner(data.newOwnerId()); // Устанавливаем владельца
             networkSystems.addNetworkManager(netManager);
             plannedManagers.add(netManager);
         }
+
         try {
+            // 6. Транзакция БД
             transactionManager.execute(connection -> {
                 mechanismRepository.deleteMechanism(connection, mechanism.getLocation());
+
                 for (int i = 0; i < components.size(); i++) {
                     NetworkManager newManager = plannedManagers.get(i);
                     Set<INetworkElement> component = components.get(i);
-                    //пишем сеть в бд
+                    NetworkComponentData data = componentDataList.get(i);
+                    newManager.setOwner(data.newOwnerId());
+                    newManager.setPassword(data.password());
                     networkRepository.createNetwork(connection, newManager);
-                    //обновляем механизмы в бд
                     mechanismRepository.batchUpdateMechanismLocNetworks(connection, component, newManager.getNetworkId());
                 }
 
                 networkRepository.deleteNetwork(connection, oldNetworkId.toString());
                 return true;
             });
-            // 3. Удаляем механизм
+
+            // 7. Удаляем механизм из памяти
             manager.deleteMechanism(loc);
             Map<UUID, List<INetworkElement>> mechanismMap = mechanism.getMechanismType().getMechsByNetwork();
-            //Устанавливаем элементы к определенной сети
+
+            // 8. Привязываем элементы к новым сетям
             for (int i = 0; i < components.size(); i++) {
                 NetworkManager newManager = plannedManagers.get(i);
-
                 Set<INetworkElement> component = components.get(i);
+
 
                 for (INetworkElement element : component) {
                     element.setNetworkId(newManager.getNetworkId());
-                    newManager.addElement(element);
 
+                    newManager.addElement(element);
                     MechanismType type = element.getMechanismType();
                     Map<UUID, List<INetworkElement>> targetMap = type.getMechsByNetwork();
                     targetMap.computeIfAbsent(newManager.getNetworkId(), id -> new ArrayList<>())
@@ -179,35 +198,36 @@ public class NewMechanismListener implements Listener {
                 }
             }
 
+            // 9. Удаляем старую сеть
             networkSystems.removeNetworkManager(oldNetworkId);
-            for(MechanismType type : MechanismType.values()) {
+            for (MechanismType type : MechanismType.values()) {
                 type.getMechsByNetwork().remove(oldNetworkId);
             }
 
-            // 6. Обновляем блок
+            // 10. Визуальные эффекты и дроп
             ListenerUtil.spawnPlaceEffect(block);
             event.setDropItems(false);
-            //Очищаем инвентарь
+
             if (block.getState() instanceof Container cont) {
                 cont.getInventory().clear();
                 cont.update(true);
             }
             block.setType(Material.AIR);
 
-            // 7. Дропаем предмет
             if (player.getGameMode() != GameMode.CREATIVE) {
                 ItemStack mechanismItem = mechanismType.create(plugin).createItem(1);
                 block.getWorld().dropItemNaturally(block.getLocation(), mechanismItem);
             }
+
         } catch (SQLException e) {
             event.setCancelled(true);
 
-            //Восстановить связи между соседями и механизмом в случае неудачи
+            // Восстанавливаем связи
             for (INetworkElement neighbor : neighbors) {
                 neighbor.addConnection(mechanism);
             }
 
-            //Удалить созданные сети в случае неудачи
+            // Удаляем созданные сети
             for (NetworkManager netManager : plannedManagers) {
                 networkSystems.removeNetworkManager(netManager);
             }

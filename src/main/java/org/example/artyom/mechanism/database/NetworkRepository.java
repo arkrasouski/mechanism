@@ -12,12 +12,14 @@ public class NetworkRepository {
 
     // Создать новую сеть
     public boolean createNetwork(Connection connection, NetworkManager network) throws SQLException{
-        String sql = "INSERT INTO networks (network_id, world_name) VALUES (?, ?)";
+        String sql = "INSERT INTO networks (network_id, world_name, owner, password) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement stmt = connection.prepareStatement(sql))
         {
             stmt.setString(1, network.getNetworkId().toString());
             stmt.setString(2, network.getWorld().getName());
+            stmt.setString(3, network.getOwner() != null ? network.getOwner().toString() : null);
+            stmt.setInt(4, network.getPassword());
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();

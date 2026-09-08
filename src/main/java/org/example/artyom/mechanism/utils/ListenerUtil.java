@@ -23,6 +23,7 @@ import org.example.artyom.mechanism.mechanism.encoder.Encoder;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
+import org.example.artyom.mechanism.records.NetworkComponentData;
 import org.example.artyom.mechanism.records.PlaceContext;
 
 import java.sql.SQLException;
@@ -564,5 +565,39 @@ public class ListenerUtil {
         ctx.event().setCancelled(true);
         ctx.player().sendMessage("§cОшибка при сохранении механизма");
         e.printStackTrace();
+    }
+
+    /**
+     * Анализирует компоненту сети и определяет нового владельца
+     * @param component Компонента механизмов
+     * @param networkSystems Все сети
+     * @return Данные о компоненте (новый владелец)
+     */
+    public static NetworkComponentData analyzeComponent(Set<INetworkElement> component, NetworkSystems networkSystems) {
+        // Ищем все барьеры в компоненте
+        List<INetworkElement> barriers = component.stream()
+                .filter(e -> e.getMechanismType() == MechanismType.BARRIER)
+                .toList();
+
+        UUID newOwnerId;
+        boolean hasOwner;
+        int password;
+
+        if (barriers.isEmpty()) {
+            // Нет барьеров — сеть без владельца
+            newOwnerId = null;
+            hasOwner = false;
+            password = -1;
+        } else {
+            // Несколько барьеров — берём владельца первого найденного
+            // (можно добавить логику приоритета: например, ближайший к игроку)
+            INetworkElement primaryBarrier = barriers.getFirst();
+            NetworkManager networkManager = getNetworkSystems().getNetworkManager(primaryBarrier.getNetworkId());
+            newOwnerId = networkManager.getOwner();
+            hasOwner = newOwnerId != null;
+            password = networkManager.getPassword();
+        }
+
+        return new NetworkComponentData(component, newOwnerId, hasOwner, password);
     }
 }
