@@ -1,6 +1,7 @@
-package org.example.artyom.mechanism.inventories;
+package org.example.artyom.mechanism.inventories.generator;
 
 import org.bukkit.entity.Player;
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.mechanism.MechanismType;
 import org.example.artyom.mechanism.mechanism.base.Mech;
 

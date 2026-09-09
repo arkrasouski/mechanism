@@ -14,11 +14,9 @@ import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.listeners.*;
 import org.example.artyom.mechanism.mechanism.MechanismManager;
 
-import org.example.artyom.mechanism.mechanism.barrier.Barrier;
 import org.example.artyom.mechanism.mechanism.base.Consumer;
 import org.example.artyom.mechanism.mechanism.generator.Generator;
 import org.example.artyom.mechanism.mechanism.network.INetworkElement;
-import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.mechanism.network.NetworkSystems;
 import org.example.artyom.mechanism.records.ChunkKey;
 import org.example.artyom.mechanism.utils.ChunkUtil;
@@ -104,7 +102,7 @@ public final class Mechanism extends JavaPlugin {
         //listeners
         //Обработка механизмов
         Bukkit.getPluginManager().registerEvents(
-                new NewMechanismListener(this,
+                new MechanismListener(this,
                                             networkSystems,
                                             transactionManager,
                                             networkRepository,
@@ -251,8 +249,8 @@ public final class Mechanism extends JavaPlugin {
 
                 if (best != null) {
                     int sent = generator.getEnergyTransferPerTick();
-                    generator.extractEnergy(sent);
-                    best.addEnergy(sent);
+                    int extracted = generator.extractEnergy(sent);
+                    if (extracted > 0) best.addEnergy(sent);
                 }
             }
         }, 0L, 20L);

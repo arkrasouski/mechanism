@@ -1,4 +1,4 @@
-package org.example.artyom.mechanism.inventories;
+package org.example.artyom.mechanism.inventories.barrier;
 
 public enum BarrierActionInventory {
     SET_PASSWORD,

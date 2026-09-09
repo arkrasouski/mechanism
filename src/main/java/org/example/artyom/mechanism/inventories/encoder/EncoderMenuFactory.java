@@ -1,18 +1,17 @@
-package org.example.artyom.mechanism.inventories;
+package org.example.artyom.mechanism.inventories.encoder;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.utils.ItemsUtil;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class EncoderMenuFactory {
     public static Inventory create(

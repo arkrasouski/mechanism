@@ -1,13 +1,13 @@
-package org.example.artyom.mechanism.inventories;
+package org.example.artyom.mechanism.inventories.barrier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.database.PlayerRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
+import org.example.artyom.mechanism.inventories.MechanismHolder;
 import org.example.artyom.mechanism.records.PlayerData;
 import org.example.artyom.mechanism.utils.ItemsUtil;
 import org.example.artyom.mechanism.utils.LogUtil;

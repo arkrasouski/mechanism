@@ -1,4 +1,4 @@
-package org.example.artyom.mechanism.inventories;
+package org.example.artyom.mechanism.inventories.encoder;
 
 public enum EncoderActionInventory {
     MAIN_MENU,

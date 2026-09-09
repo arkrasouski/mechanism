@@ -56,7 +56,7 @@ public abstract class Producer extends Mech implements IProducer {
 
     @Override
     public int produceEnergy() {
-        if (true && getCurrentEnergy() < getMaxEnergyStorage()) {  //if(hasFuel()) {
+        if (true && isWorking() && (getCurrentEnergy() < getMaxEnergyStorage())) {  //if(hasFuel()) {
             int actualProduced = Math.min(generation_per_tick, getMaxEnergyStorage() - getCurrentEnergy());
             return actualProduced;
         }

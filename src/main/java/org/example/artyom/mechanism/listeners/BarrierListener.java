@@ -1,5 +1,4 @@
 package org.example.artyom.mechanism.listeners;
-import org.apache.commons.logging.Log;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,9 +12,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.example.artyom.mechanism.Mechanism;
 import org.example.artyom.mechanism.database.NetworkRepository;
 import org.example.artyom.mechanism.database.TransactionManager;
-import org.example.artyom.mechanism.inventories.BarrierActionInventory;
-import org.example.artyom.mechanism.inventories.BarrierHolder;
-import org.example.artyom.mechanism.inventories.BarrierMenuFactory;
+import org.example.artyom.mechanism.inventories.barrier.BarrierActionInventory;
+import org.example.artyom.mechanism.inventories.barrier.BarrierHolder;
+import org.example.artyom.mechanism.inventories.barrier.BarrierMenuFactory;
 import org.example.artyom.mechanism.mechanism.network.NetworkManager;
 import org.example.artyom.mechanism.utils.LogUtil;
 
